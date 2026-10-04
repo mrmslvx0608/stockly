@@ -117,6 +117,7 @@ Važni commitovi do sada:
 ```text
 Initial Stockly setup
 Add Supabase integration
+a25b133 - Implement authentication and protected dashboard
 ```
 
 ---
@@ -225,6 +226,53 @@ Ready
 Vercel je povezan na `main` branch.
 
 Svaki budući push na `main` automatski radi novi production deployment.
+
+## 2.5. FAZA 1 — Authentication: COMPLETE
+
+FAZA 1 — Authentication + minimalni protected app shell je završena.
+Korisnik je potvrdio ručnu provjeru lokalno i u produkciji; status je zabilježen **4. listopada 2026.**
+
+Trenutni implementation commit:
+
+```text
+a25b133 - Implement authentication and protected dashboard
+```
+
+Implementirano i ručno provjereno lokalno (`http://localhost:3000`) i u produkciji (`https://stockly-roan-tau.vercel.app`):
+
+- `/login` koristi Supabase email/password authentication; uspješna prijava vodi na `/dashboard`.
+- Nema public signup UI-ja, registracije, create-account, passwordless, social login ili public onboarding funkcionalnosti. Public signup ostaje **OFF**; Supabase hosted postavke nisu mijenjane.
+- `/dashboard` je zaštićen i prikazuje "Welcome to Stockly", email prijavljenog korisnika i logout button.
+- Neautorizirani pristup `/dashboard` preusmjerava na `/login`.
+- Prijavljeni korisnik koji otvori `/login` preusmjerava se na `/dashboard`.
+- Root route `/` preusmjerava prijavljenog korisnika na `/dashboard`, a neprijavljenog na `/login`.
+- Logout odjavljuje korisnika i preusmjerava na `/login`.
+- Supabase SSR session refresh koristi Next.js 16 proxy pattern; osvježeni cookies prenose se Server Componentsima i browseru.
+- Oba postojeća, ručno kreirana korisnika mogu se prijaviti.
+- Refresh stranice čuva korisničku sesiju.
+- `npm run lint` prolazi.
+- `npm run build` prolazi, uključujući TypeScript provjeru.
+- Production deployment na postojećem Vercel projektu radi.
+
+Auth implementacija koristi ove datoteke:
+
+```text
+src/app/auth/actions.ts          — sign-in i logout Server Actions
+src/app/login/page.tsx           — login stranica i authenticated redirect
+src/app/login/login-form.tsx     — email/password forma i inline errors
+src/app/dashboard/page.tsx       — protected dashboard, email i logout
+src/app/page.tsx                 — root auth redirect
+src/proxy.ts                    — Next.js 16 proxy entry point
+src/utils/supabase/proxy.ts      — SSR session refresh i cookie/cache headers
+src/app/layout.tsx              — Stockly metadata i dark app shell
+src/app/globals.css             — jednostavni dark stilovi
+```
+
+Postojeći `src/utils/supabase/client.ts` i `src/utils/supabase/server.ts` ostali su nepromijenjeni.
+`.env.local` ostaje privatna i gitignored; environment vrijednosti i infrastruktura nisu mijenjani ni izloženi.
+Nisu dodane tablice, migracije, household model ili druge Stockly funkcionalnosti.
+
+**NEXT: FAZA 2 — Database schema + shared household model.**
 
 ---
 
@@ -1211,7 +1259,7 @@ To omogućuje Auth flow i lokalno i u produkciji.
 
 # 31. Što je ZAVRŠENO
 
-Setup infrastrukture je završen.
+Setup infrastrukture i FAZA 1 — Authentication su završeni. Detalji i potvrda lokalne i production provjere nalaze se u sekciji **2.5**.
 
 ## Gotovo
 
@@ -1245,21 +1293,26 @@ Setup infrastrukture je završen.
 ✅ Supabase production Site URL
 ✅ localhost auth redirect
 ✅ production auth redirect
+✅ FAZA 1 — Authentication + protected app shell
+✅ email/password login bez public signup UI-ja
+✅ protected dashboard i auth redirects
+✅ logout
+✅ Supabase SSR session refresh proxy
+✅ oba postojeća korisnika mogu se prijaviti
+✅ refresh čuva sesiju
+✅ npm run lint / npm run build
+✅ authentication provjeren lokalno i u produkciji
 ```
 
 ---
 
 # 32. Što NIJE još napravljeno
 
-Još nije kodirana stvarna Stockly aplikacija.
+Authentication i minimalni protected app shell su implementirani. Preostale Stockly funkcionalnosti još nisu implementirane.
 
 Nije napravljeno:
 
 ```text
-❌ login UI
-❌ logout
-❌ protected routes
-❌ dashboard
 ❌ household model
 ❌ inventory tables
 ❌ shopping tables
@@ -1273,7 +1326,7 @@ Nije napravljeno:
 ❌ final design
 ```
 
-To je sljedeća faza i planirana je za Codex.
+Sljedeća je FAZA 2 — Database schema + shared household model; ostale funkcionalnosti slijede fazu po fazu.
 
 ---
 
@@ -1284,11 +1337,11 @@ Ne raditi sve u jednom ogromnom promptu.
 Preporučeni redoslijed:
 
 ```text
-FAZA 1
+FAZA 1 — COMPLETE
 Authentication + protected app shell
 
-FAZA 2
-Database schema + household
+FAZA 2 — NEXT
+Database schema + shared household model
 
 FAZA 3
 Inventory
@@ -1337,9 +1390,9 @@ production test
 
 ---
 
-# 34. Prvi Codex zadatak — preporučeni prompt
+# 34. Prvi Codex zadatak — povijesni prompt za završenu FAZU 1
 
-Ovo je pripremljeni prompt za FAZU 1.
+Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZA 1 je **COMPLETE**; ne implementirati je ponovno. Sljedeća je FAZA 2.
 
 ```text
 We are building a private web app called Stockly.
@@ -2082,9 +2135,12 @@ https://stockly-roan-tau.vercel.app
 
 # 48. Handoff — što je prvi sljedeći konkretan korak
 
-**NE raditi novi setup.**
+**NE raditi novi setup i NE ponavljati završenu FAZU 1.**
 
-Sljedeći korak je:
+FAZA 1 je **COMPLETE**, commit `a25b133 - Implement authentication and protected dashboard`.
+Authentication je ručno provjeren lokalno i u produkciji, a `npm run lint` i `npm run build` prolaze.
+
+Sljedeći korak je nastavak rada u postojećem projektu:
 
 ```text
 Open Codex
@@ -2092,42 +2148,16 @@ Open existing local project:
 C:\Projects\stockly
 ```
 
-Zatim napraviti samo:
+Sljedeća faza:
 
 ```text
-FAZA 1 — Authentication
+FAZA 2 — NEXT
+Database schema + shared household model
 ```
 
-i koristiti prompt iz sekcije **34**.
-
-Nakon Codex izmjena:
-
-```bat
-npm run lint
-npm run build
-npm run dev
-```
-
-Testirati:
-
-```text
-/login
-/dashboard
-logout
-invalid credentials
-protected route
-authenticated redirect
-```
-
-Zatim:
-
-```bat
-git add .
-git commit -m "Implement authentication"
-git push
-```
-
-Vercel će automatski deployati novu verziju.
+Prije implementacije FAZE 2 pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću Supabase, GitHub i Vercel infrastrukturu i postojeća dva Auth korisnika.
+Sačuvati postojeću authentication implementaciju i zabranu public signupa. Prompt iz sekcije **34** ostaje samo povijesna referenca.
+FAZA 2 još nije implementirana; sljedeći zadatak je definirati database schema i zajednički household model za oba postojeća korisnika.
 
 ---
 
@@ -2147,9 +2177,23 @@ Vercel će automatski deployati novu verziju.
 ✅ Auth redirect URLs ready
 ```
 
-**Implementation status: NOT STARTED**
+**Phase 1: Authentication — COMPLETE**
 
-Sljedeće je čisto programiranje Stockly aplikacije.
+```text
+✅ login/logout/protected dashboard
+✅ authenticated /login redirect i root auth redirect
+✅ Supabase SSR session refresh proxy
+✅ oba postojeća korisnika se mogu prijaviti
+✅ refresh čuva sesiju; unauthorized dashboard access -> /login
+✅ npm run lint / npm run build prolaze
+✅ ručna lokalna i production provjera potvrđena od korisnika
+✅ Vercel production deployment radi
+Commit: a25b133 - Implement authentication and protected dashboard
+```
+
+**NEXT: Phase 2 — Database schema + shared household model**
+
+Ostale funkcionalnosti još nisu implementirane.
 
 ---
 
@@ -2168,10 +2212,21 @@ RLS for new tables: ON
 Vercel auto-deploy: ON
 Supabase client/server helpers: already created
 .env.local: exists locally and is gitignored
+Phase 1: Authentication + protected app shell — COMPLETE
+Implementation commit: a25b133 - Implement authentication and protected dashboard
+Auth checks: manually verified locally and in production by the user
+Both existing users: login works
+Session refresh proxy: implemented; page refresh preserves the session
+Unauthorized dashboard access: redirects to /login
+Login/root auth redirects and logout: verified
+npm run lint: PASS
+npm run build: PASS
+Vercel production deployment: working
 
 DO NOT redo setup.
+DO NOT reimplement Phase 1 or enable public signup.
 
 NEXT TASK:
-Implement login/logout/protected dashboard only.
-Then continue phase-by-phase with database, inventory, shopping, activity, realtime, PWA, notifications.
+Phase 2 — Database schema + shared household model.
+Then continue phase-by-phase with inventory, shopping, activity, realtime, PWA, notifications.
 ```
