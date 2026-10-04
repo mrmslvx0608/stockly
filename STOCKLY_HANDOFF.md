@@ -289,7 +289,7 @@ supabase/migrations/20261004000000_create_shared_household_foundation.sql
 - Row Level Security je uključen na obje tablice.
 - `private.is_household_member(uuid)` je recursion-safe `SECURITY DEFINER` helper u privatnoj schemi, s vlasnikom `postgres`, praznim `search_path` i schema-qualified referencama. Membership lookup zaobilazi RLS, a identitet pozivatelja provjerava preko `auth.uid()`, čime se izbjegava rekurzija membership policyja.
 - `authenticated` klijenti imaju read-only pristup kroz RLS: mogu čitati samo households kojima pripadaju i membership retke tih households. SELECT policies su `households_select_for_members` i `household_members_select_for_members`.
-- Client `INSERT`, `UPDATE` i `DELETE` policies još ne postoje; client write grants nisu dodijeljeni. Promjene households i memberships ostaju admin-controlled.
+- Za `households` i `household_members` client `INSERT`, `UPDATE` i `DELETE` policies ne postoje; client write grants nisu dodijeljeni. Promjene households i memberships ostaju admin-controlled.
 - Kreiran je jedan zajednički Stockly household.
 - Oba postojeća Auth korisnika dodana su u taj isti household: jedan kao `owner`, drugi kao `member`.
 - Runtime RLS testiranje završeno je za oba authenticated korisnika. Svaki korisnik vidi točno **1 household** i **2 household membership retka**.
@@ -300,7 +300,47 @@ Stvarni user UUIDs, email adrese, lozinke, secrets i environment vrijednosti nis
 Auth korisnici i authentication postavke nisu mijenjani; `auth.users` nije izložen aplikaciji.
 Inventory, shopping, activity, realtime, PWA, notifications i novi UI nisu implementirani u FAZI 2.
 
-**NEXT: FAZA 3 — Inventory.**
+## 2.7. FAZA 3 — Inventory: COMPLETE
+
+FAZA 3 — prvi upotrebljivi zajednički household inventory je završena.
+Korisnik je potvrdio ručno izvršavanje migracije te application, validation, trigger i runtime RLS provjere; status je zabilježen **4. listopada 2026.**
+
+Migracija:
+
+```text
+supabase/migrations/20261004010000_create_inventory_items.sql
+```
+
+- Migracija je pregledana i uspješno ručno izvršena u postojećem hosted Supabase SQL Editoru. Ne izvršavati je ponovno.
+- `public.inventory_items` postoji s kolonama `id`, `household_id`, `name`, `quantity`, `unit`, `category`, `low_stock_threshold`, `created_at` i `updated_at`. UUID `id` ima `gen_random_uuid()` default; obavezni `household_id` referencira `public.households(id)` s `ON DELETE CASCADE`. Quantity i threshold koriste `numeric(12,3)`; threshold je opcionalan. Category i unit su jednostavna text polja s podrškom za custom vrijednosti. Dodan je index na `household_id`.
+- RLS je uključen. Četiri `authenticated` policies su `inventory_items_select_for_members`, `inventory_items_insert_for_members`, `inventory_items_update_for_members` i `inventory_items_delete_for_members`. Sve koriste postojeći `private.is_household_member(household_id)` helper; UPDATE provjerava i postojeći i novi redak kroz `USING` i `WITH CHECK`.
+- Owner i member imaju identičan inventory pristup. Default client privileges su revoked; `authenticated` ima SELECT i DELETE, column INSERT na `household_id` i editable poljima, te column UPDATE samo na `name`, `quantity`, `unit`, `category` i `low_stock_threshold`.
+- Protected-column privilege provjere potvrđuju da `authenticated` ne može ažurirati `id`, `household_id`, `created_at` ili `updated_at`. Anonymous korisnici nemaju SELECT pristup inventoryju.
+- `src/lib/household.ts` je server-only resolver: provjerava Auth korisnika preko `getUser()`, čita njegove membership retke kroz postojeći RLS uz filter na njegov `user_id` i zahtijeva točno jedan household. `household_id` dolazi iz tog server-side rezultata, nikad iz browser inputa.
+- Sve inventory Server Actions koriste resolver. Edit, quantity update i delete filtriraju i item `id` i resolved `household_id`; quantity update mijenja samo quantity. Input se validira server-side, tekst se trimma, a uspješne promjene revalidiraju `/inventory`.
+- `inventory_items_set_updated_at` trigger i `private.set_inventory_item_updated_at()` ručno su provjereni: `updated_at` se mijenja nakon izmjene artikla.
+- Protected `/inventory` ima add/edit formu, inventory listu, quantity update, potvrdu brisanja, pending/error/empty states i low-stock oznaku. Dashboard ima Inventory link. Nema novih API routes.
+- Oba postojeća korisnika ručno su provjerena: vide isti zajednički household inventory i oba mogu create, read, edit, change quantity i delete zajedničke artikle. Promjene jednog korisnika vidljive su drugom nakon refresh-a.
+- Low-stock logika je potvrđena: `quantity <= low_stock_threshold`, samo kada threshold nije `null`. Decimalne količine do tri decimalna mjesta su potvrđene.
+- Server-side validation je ručno provjeren bypassanjem browser validationa: negativne količine i vrijednosti s više od tri decimalna mjesta su odbijene, a spremljeni podaci ostali su nepromijenjeni.
+- Runtime RLS isolation je ručno provjeren s rollback-only foreign-household fixtures: authenticated Stockly korisnik vidio je točno jedan household, nije mogao vidjeti foreign inventory item, ažurirati ga ili obrisati. Privremeni foreign household/item fixtures su rolled back.
+- Lokalne implementation provjere `npm run lint` i `npm run build` prošle su, kao i 58 lokalnih mocked security/validation i statičkih migration provjera. Ručne hosted/runtime potvrde iznad dao je korisnik; agent nije izvršavao hosted SQL.
+
+Implementation datoteke:
+
+```text
+src/lib/household.ts
+src/app/inventory/page.tsx
+src/app/inventory/actions.ts
+src/app/inventory/types.ts
+src/app/inventory/inventory-item-form.tsx
+src/app/inventory/inventory-list.tsx
+src/app/dashboard/page.tsx       — dodan Inventory link
+```
+
+FAZA 1 Authentication i FAZA 2 Shared Household ostaju funkcionalne i nepromijenjene; dashboard je dobio samo inventory navigaciju. Stvarni user UUIDs, email adrese, secrets, lozinke i environment vrijednosti nisu zapisani u ovoj potvrdi. Nema shopping synchronizationa, activity historyja, realtimea, PWA-a, notificationsa, barcode scanninga ili imagesa u ovoj fazi.
+
+**NEXT: FAZA 4 — Shopping list**, prema roadmapu u sekciji **33**. Low-stock automation ostaje FAZA 5.
 
 ---
 
@@ -1287,7 +1327,7 @@ To omogućuje Auth flow i lokalno i u produkciji.
 
 # 31. Što je ZAVRŠENO
 
-Setup infrastrukture, FAZA 1 — Authentication i FAZA 2 — Database schema + shared household model su završeni. Detalji authentication provjere nalaze se u sekciji **2.5**, a potvrda hosted database setupa i runtime RLS testiranja u sekciji **2.6**.
+Setup infrastrukture, FAZA 1 — Authentication, FAZA 2 — Database schema + shared household model i FAZA 3 — Inventory su završeni. Detalji authentication provjere nalaze se u sekciji **2.5**, household setupa u **2.6**, a inventory implementacije i ručnih hosted/application/RLS provjera u **2.7**.
 
 ## Gotovo
 
@@ -1334,25 +1374,31 @@ Setup infrastrukture, FAZA 1 — Authentication i FAZA 2 — Database schema + s
 ✅ migracija pregledana i ručno izvršena u hosted Supabase SQL Editoru
 ✅ public.households i public.household_members
 ✅ RLS na obje tablice i private.is_household_member(uuid) helper
-✅ authenticated read-only pristup; bez client write policies
+✅ authenticated read-only pristup za households/memberships; bez client write policies za te tablice
 ✅ jedan zajednički household; postojeća dva korisnika kao owner i member
 ✅ runtime RLS za oba korisnika: svaki vidi 1 household i 2 membership retka
 ✅ docs/database-setup.md — ručni bootstrap postupak
+✅ FAZA 3 — Inventory: COMPLETE
+✅ inventory migracija pregledana i ručno izvršena; public.inventory_items i updated_at trigger
+✅ authenticated inventory CRUD kroz četiri membership RLS policies; anonymous SELECT zabranjen
+✅ server-side household resolver; edit/quantity/delete scope po item id i household_id
+✅ protected columns, foreign-household isolation i rollback fixtures ručno provjereni
+✅ oba korisnika upravljaju istim inventoryjem; promjene vidljive nakon refresh-a
+✅ low-stock oznaka, tri decimalna mjesta i server-side validation ručno provjereni
 ```
 
 ---
 
 # 32. Što NIJE još napravljeno
 
-Authentication, minimalni protected app shell i zajednički household database foundation su implementirani. Preostale Stockly funkcionalnosti još nisu implementirane.
+Authentication, minimalni protected app shell, zajednički household database foundation i prvi zajednički inventory su implementirani i ručno provjereni. Preostale Stockly funkcionalnosti još nisu implementirane.
 
 Nije napravljeno:
 
 ```text
-❌ inventory tables
 ❌ shopping tables
 ❌ activity table
-❌ inventory, shopping i activity RLS policies
+❌ shopping i activity RLS policies
 ❌ realtime sync
 ❌ low-stock automatika
 ❌ PWA
@@ -1360,7 +1406,7 @@ Nije napravljeno:
 ❌ final design
 ```
 
-Sljedeća je FAZA 3 — Inventory; ostale funkcionalnosti slijede fazu po fazu.
+Sljedeća je FAZA 4 — Shopping list; ostale funkcionalnosti slijede fazu po fazu. Inventory low-stock oznaka postoji; low-stock automatika ostaje za FAZU 5.
 
 ---
 
@@ -1377,10 +1423,10 @@ Authentication + protected app shell
 FAZA 2 — COMPLETE
 Database schema + shared household model
 
-FAZA 3 — NEXT
+FAZA 3 — COMPLETE
 Inventory
 
-FAZA 4
+FAZA 4 — NEXT
 Shopping list
 
 FAZA 5
@@ -1426,7 +1472,7 @@ production test
 
 # 34. Prvi Codex zadatak — povijesni prompt za završenu FAZU 1
 
-Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1 i 2 su **COMPLETE**; ne implementirati ih ponovno. Sljedeća je FAZA 3 — Inventory.
+Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1, 2 i 3 su **COMPLETE**; ne implementirati ih ponovno. Sljedeća je FAZA 4 — Shopping list.
 
 ```text
 We are building a private web app called Stockly.
@@ -1504,6 +1550,8 @@ Stockly
 ---
 
 # 36. Inventory model — plan
+
+Ovo je širi budući plan, ne trenutni schema. Implementirana FAZA 3 koristi kolone iz sekcije **2.7** (`quantity` i opcionalni `low_stock_threshold`, text category/unit). Location, target quantity i auto-add-to-shopping nisu implementirani.
 
 Svaki proizvod treba imati barem:
 
@@ -2169,11 +2217,12 @@ https://stockly-roan-tau.vercel.app
 
 # 48. Handoff — što je prvi sljedeći konkretan korak
 
-**NE raditi novi setup i NE ponavljati završene FAZE 1 i 2.**
+**NE raditi novi setup i NE ponavljati završene FAZE 1, 2 i 3.**
 
 FAZA 1 je **COMPLETE**, commit `a25b133 - Implement authentication and protected dashboard`.
 Authentication je ručno provjeren lokalno i u produkciji, a `npm run lint` i `npm run build` prolaze.
 FAZA 2 je **COMPLETE**: migracija je pregledana i ručno izvršena u hosted Supabase SQL Editoru; jedan shared household s postojećim owner/member korisnicima je kreiran. Runtime RLS potvrđuje da oba korisnika vide točno 1 household i 2 membership retka. Detalji su u sekciji **2.6**, a bootstrap u `docs/database-setup.md`.
+FAZA 3 je **COMPLETE**: inventory migracija je pregledana i ručno izvršena; oba korisnika upravljaju istim inventoryjem. Updated-at trigger, low-stock logika, decimalne količine, server-side validation, protected-column privileges i foreign-household runtime RLS isolation ručno su potvrđeni. Test fixtures su rolled back. Detalji su u sekciji **2.7** i `docs/database-setup.md`.
 
 Sljedeći korak je nastavak rada u postojećem projektu:
 
@@ -2186,13 +2235,13 @@ C:\Projects\stockly
 Sljedeća faza:
 
 ```text
-FAZA 3 — NEXT
-Inventory
+FAZA 4 — NEXT
+Shopping list
 ```
 
-Prije implementacije FAZE 3 pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću Supabase, GitHub i Vercel infrastrukturu, postojeća dva Auth korisnika i njihov zajednički household.
-Sačuvati postojeću authentication implementaciju, zabranu public signupa i database foundation iz FAZE 2. Ne izvršavati ponovno dovršenu migraciju ili bootstrap. Prompt iz sekcije **34** ostaje samo povijesna referenca.
-Sljedeći zadatak je Inventory na postojećem shared household modelu. Ostale faze ostaju za kasnije.
+Prije implementacije FAZE 4 pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću Supabase, GitHub i Vercel infrastrukturu, postojeća dva Auth korisnika i njihov zajednički household.
+Sačuvati postojeću authentication implementaciju, zabranu public signupa, database foundation iz FAZE 2 i provjereni inventory iz FAZE 3. Ne izvršavati ponovno dovršene migracije ili bootstrap. Prompt iz sekcije **34** ostaje samo povijesna referenca.
+Sljedeći zadatak je Shopping list prema roadmapu u sekciji **33**. Low-stock automation je FAZA 5; ostale faze ostaju za kasnije.
 
 ---
 
@@ -2232,13 +2281,31 @@ Commit: a25b133 - Implement authentication and protected dashboard
 ✅ supabase/migrations/20261004000000_create_shared_household_foundation.sql pregledana i ručno izvršena u hosted Supabase SQL Editoru
 ✅ public.households i public.household_members kreirane; RLS uključen na obje
 ✅ private.is_household_member(uuid) — recursion-safe SECURITY DEFINER helper
-✅ authenticated read-only pristup kroz RLS; bez client INSERT/UPDATE/DELETE policies
+✅ authenticated read-only pristup za households/memberships kroz RLS; bez write policies za te tablice
 ✅ jedan zajednički Stockly household; oba postojeća Auth korisnika dodana kao owner i member
 ✅ runtime RLS testiranje završeno za oba korisnika: svaki vidi točno 1 household i 2 membership retka
 ✅ docs/database-setup.md dokumentira ručni bootstrap postupak
 ```
 
-**NEXT: Phase 3 — Inventory**
+**Phase 3: Inventory — COMPLETE**
+
+```text
+✅ supabase/migrations/20261004010000_create_inventory_items.sql pregledana i ručno izvršena u hosted Supabase SQL Editoru
+✅ public.inventory_items s devet kolona; RLS i četiri authenticated CRUD policies
+✅ postojeći private.is_household_member(household_id) helper; owner/member jednak pristup
+✅ household_id iz server-only Auth/membership resolvera; browser ownership input se ne koristi
+✅ edit/quantity/delete scope po item id i resolved household_id
+✅ authenticated ne može update id/household_id/created_at/updated_at; anonymous nema SELECT
+✅ updated_at trigger ručno provjeren; oba korisnika imaju shared inventory CRUD
+✅ promjene vidljive drugom korisniku nakon refresh-a
+✅ quantity <= threshold za non-null threshold; tri decimalna mjesta ručno provjerena
+✅ bypass browser validation: negativne i preprecizne količine odbijene bez promjene podataka
+✅ foreign-household runtime RLS SELECT/UPDATE/DELETE isolation potvrđen; fixtures rolled back
+✅ npm run lint / npm run build i 58 lokalnih security/validation/static provjera prošli tijekom implementacije
+✅ FAZE 1 i 2 ostaju funkcionalne i nepromijenjene
+```
+
+**NEXT: Phase 4 — Shopping list**
 
 Ostale funkcionalnosti još nisu implementirane.
 
@@ -2274,15 +2341,29 @@ Migration: supabase/migrations/20261004000000_create_shared_household_foundation
 Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
 Tables: public.households and public.household_members; RLS enabled on both
 Helper: private.is_household_member(uuid), recursion-safe SECURITY DEFINER
-Client access: authenticated SELECT only through RLS; no INSERT/UPDATE/DELETE policies
+Household/membership access: authenticated SELECT only through RLS; no write policies for those tables
 Shared household: one Stockly household with the two existing Auth users (one owner, one member)
 Runtime RLS: completed for both authenticated users; each sees exactly 1 household and 2 membership rows
 Manual bootstrap documentation: docs/database-setup.md
 
+Phase 3: Inventory — COMPLETE
+Migration: supabase/migrations/20261004010000_create_inventory_items.sql
+Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
+Table: public.inventory_items; RLS enabled; four authenticated CRUD policies using existing membership helper
+Ownership: server-only resolver from verified Auth user; exactly one membership required; browser household_id not trusted
+Edit/quantity/delete: both item id and resolved household_id filters
+Privileges: protected-column UPDATE denied; anonymous SELECT denied
+Manual checks: both existing users share inventory CRUD; changes visible after refresh
+Manual checks: updated_at trigger, low stock for non-null threshold, three decimal places
+Manual validation: browser checks bypassed; negative/overprecision quantities rejected; stored data unchanged
+Runtime RLS isolation: Stockly user sees one household; foreign inventory SELECT/UPDATE/DELETE denied
+Temporary foreign household/item fixtures: rolled back
+Phases 1 and 2: still working and unchanged
+
 DO NOT redo setup.
-DO NOT reimplement Phases 1 or 2, rerun the completed migration/bootstrap, or enable public signup.
+DO NOT reimplement Phases 1, 2 or 3, rerun the completed migrations/bootstrap, or enable public signup.
 
 NEXT TASK:
-Phase 3 — Inventory.
-Then continue phase-by-phase with shopping, low-stock automation, activity, realtime, PWA, notifications.
+Phase 4 — Shopping list (roadmap section 33).
+Then continue phase-by-phase with low-stock automation, activity, realtime, PWA, notifications.
 ```

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { createClient } from "@/utils/supabase/server";
@@ -36,6 +37,12 @@ export default async function DashboardPage({
         <p className="mt-3 break-all text-sm text-zinc-400">
           Signed in as <span className="text-zinc-200">{user.email}</span>
         </p>
+        <Link
+          href="/inventory"
+          className="mt-6 inline-block rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
+        >
+          Open inventory
+        </Link>
         {params.error === "signout" && (
           <p role="alert" className="mt-4 text-sm text-red-400">
             Unable to log out. Please try again.
