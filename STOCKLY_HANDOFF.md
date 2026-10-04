@@ -164,11 +164,11 @@ Supabase Auth je pripremljen.
 
 Postoje **točno dva korisnika** kreirana ručno u Supabase Authentication > Users.
 
-Trenutno korišteni email računi:
+Email računi postojećih korisnika (samo placeholders):
 
 ```text
-mr.mslvx@gmail.com
-stellabolfan@yahoo.com
+<USER_1_EMAIL>
+<USER_2_EMAIL>
 ```
 
 > Lozinke nisu zapisane u ovom dokumentu.
@@ -270,9 +270,37 @@ src/app/globals.css             — jednostavni dark stilovi
 
 Postojeći `src/utils/supabase/client.ts` i `src/utils/supabase/server.ts` ostali su nepromijenjeni.
 `.env.local` ostaje privatna i gitignored; environment vrijednosti i infrastruktura nisu mijenjani ni izloženi.
-Nisu dodane tablice, migracije, household model ili druge Stockly funkcionalnosti.
+U FAZI 1 nisu dodane tablice, migracije, household model ili druge Stockly funkcionalnosti.
 
-**NEXT: FAZA 2 — Database schema + shared household model.**
+## 2.6. FAZA 2 — Database schema + shared household model: COMPLETE
+
+FAZA 2 — Database schema + shared household model je završena.
+Korisnik je potvrdio ručno izvršavanje migracije, bootstrap i runtime RLS provjeru na hosted Supabase projektu; status je zabilježen **4. listopada 2026.**
+
+Migracija:
+
+```text
+supabase/migrations/20261004000000_create_shared_household_foundation.sql
+```
+
+- Migracija je pregledana i uspješno ručno izvršena u hosted Supabase SQL Editoru.
+- Kreirana je `public.households`: UUID primary key s `gen_random_uuid()` defaultom, obavezni `name` i `created_at` s `now()` defaultom.
+- Kreirana je `public.household_members`: obavezni `household_id` i `user_id` foreign keys prema `public.households(id)` i `auth.users(id)`, oba s `ON DELETE CASCADE`; composite primary key `(household_id, user_id)`; `role` dopušta samo `owner` i `member`, uz default `member`; `created_at` ima `now()` default. Dodan je index na `user_id`.
+- Row Level Security je uključen na obje tablice.
+- `private.is_household_member(uuid)` je recursion-safe `SECURITY DEFINER` helper u privatnoj schemi, s vlasnikom `postgres`, praznim `search_path` i schema-qualified referencama. Membership lookup zaobilazi RLS, a identitet pozivatelja provjerava preko `auth.uid()`, čime se izbjegava rekurzija membership policyja.
+- `authenticated` klijenti imaju read-only pristup kroz RLS: mogu čitati samo households kojima pripadaju i membership retke tih households. SELECT policies su `households_select_for_members` i `household_members_select_for_members`.
+- Client `INSERT`, `UPDATE` i `DELETE` policies još ne postoje; client write grants nisu dodijeljeni. Promjene households i memberships ostaju admin-controlled.
+- Kreiran je jedan zajednički Stockly household.
+- Oba postojeća Auth korisnika dodana su u taj isti household: jedan kao `owner`, drugi kao `member`.
+- Runtime RLS testiranje završeno je za oba authenticated korisnika. Svaki korisnik vidi točno **1 household** i **2 household membership retka**.
+- `docs/database-setup.md` dokumentira ručni one-time bootstrap i SQL primjere s placeholderima.
+- Lokalne provjere `npm run lint`, `npm run build` i 25 statičkih provjera migracije/dokumentacije prošle su.
+
+Stvarni user UUIDs, email adrese, lozinke, secrets i environment vrijednosti nisu zapisani u ovoj potvrdi.
+Auth korisnici i authentication postavke nisu mijenjani; `auth.users` nije izložen aplikaciji.
+Inventory, shopping, activity, realtime, PWA, notifications i novi UI nisu implementirani u FAZI 2.
+
+**NEXT: FAZA 3 — Inventory.**
 
 ---
 
@@ -648,7 +676,7 @@ Zato je postavljeno:
 
 ```bat
 git config --global user.name "mrmslvx0608"
-git config --global user.email "mr.mslvx@gmail.com"
+git config --global user.email "<YOUR_EMAIL>"
 ```
 
 Provjera:
@@ -971,11 +999,11 @@ Password: jaka lozinka
 Auto confirm user?: ON
 ```
 
-Korisnici:
+Korisnici (email placeholders):
 
 ```text
-mr.mslvx@gmail.com
-stellabolfan@yahoo.com
+<USER_1_EMAIL>
+<USER_2_EMAIL>
 ```
 
 ---
@@ -1259,7 +1287,7 @@ To omogućuje Auth flow i lokalno i u produkciji.
 
 # 31. Što je ZAVRŠENO
 
-Setup infrastrukture i FAZA 1 — Authentication su završeni. Detalji i potvrda lokalne i production provjere nalaze se u sekciji **2.5**.
+Setup infrastrukture, FAZA 1 — Authentication i FAZA 2 — Database schema + shared household model su završeni. Detalji authentication provjere nalaze se u sekciji **2.5**, a potvrda hosted database setupa i runtime RLS testiranja u sekciji **2.6**.
 
 ## Gotovo
 
@@ -1302,23 +1330,29 @@ Setup infrastrukture i FAZA 1 — Authentication su završeni. Detalji i potvrda
 ✅ refresh čuva sesiju
 ✅ npm run lint / npm run build
 ✅ authentication provjeren lokalno i u produkciji
+✅ FAZA 2 — Database schema + shared household model
+✅ migracija pregledana i ručno izvršena u hosted Supabase SQL Editoru
+✅ public.households i public.household_members
+✅ RLS na obje tablice i private.is_household_member(uuid) helper
+✅ authenticated read-only pristup; bez client write policies
+✅ jedan zajednički household; postojeća dva korisnika kao owner i member
+✅ runtime RLS za oba korisnika: svaki vidi 1 household i 2 membership retka
+✅ docs/database-setup.md — ručni bootstrap postupak
 ```
 
 ---
 
 # 32. Što NIJE još napravljeno
 
-Authentication i minimalni protected app shell su implementirani. Preostale Stockly funkcionalnosti još nisu implementirane.
+Authentication, minimalni protected app shell i zajednički household database foundation su implementirani. Preostale Stockly funkcionalnosti još nisu implementirane.
 
 Nije napravljeno:
 
 ```text
-❌ household model
 ❌ inventory tables
 ❌ shopping tables
 ❌ activity table
-❌ database migrations
-❌ RLS policies za stvarne tablice
+❌ inventory, shopping i activity RLS policies
 ❌ realtime sync
 ❌ low-stock automatika
 ❌ PWA
@@ -1326,7 +1360,7 @@ Nije napravljeno:
 ❌ final design
 ```
 
-Sljedeća je FAZA 2 — Database schema + shared household model; ostale funkcionalnosti slijede fazu po fazu.
+Sljedeća je FAZA 3 — Inventory; ostale funkcionalnosti slijede fazu po fazu.
 
 ---
 
@@ -1340,10 +1374,10 @@ Preporučeni redoslijed:
 FAZA 1 — COMPLETE
 Authentication + protected app shell
 
-FAZA 2 — NEXT
+FAZA 2 — COMPLETE
 Database schema + shared household model
 
-FAZA 3
+FAZA 3 — NEXT
 Inventory
 
 FAZA 4
@@ -1392,7 +1426,7 @@ production test
 
 # 34. Prvi Codex zadatak — povijesni prompt za završenu FAZU 1
 
-Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZA 1 je **COMPLETE**; ne implementirati je ponovno. Sljedeća je FAZA 2.
+Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1 i 2 su **COMPLETE**; ne implementirati ih ponovno. Sljedeća je FAZA 3 — Inventory.
 
 ```text
 We are building a private web app called Stockly.
@@ -2135,10 +2169,11 @@ https://stockly-roan-tau.vercel.app
 
 # 48. Handoff — što je prvi sljedeći konkretan korak
 
-**NE raditi novi setup i NE ponavljati završenu FAZU 1.**
+**NE raditi novi setup i NE ponavljati završene FAZE 1 i 2.**
 
 FAZA 1 je **COMPLETE**, commit `a25b133 - Implement authentication and protected dashboard`.
 Authentication je ručno provjeren lokalno i u produkciji, a `npm run lint` i `npm run build` prolaze.
+FAZA 2 je **COMPLETE**: migracija je pregledana i ručno izvršena u hosted Supabase SQL Editoru; jedan shared household s postojećim owner/member korisnicima je kreiran. Runtime RLS potvrđuje da oba korisnika vide točno 1 household i 2 membership retka. Detalji su u sekciji **2.6**, a bootstrap u `docs/database-setup.md`.
 
 Sljedeći korak je nastavak rada u postojećem projektu:
 
@@ -2151,13 +2186,13 @@ C:\Projects\stockly
 Sljedeća faza:
 
 ```text
-FAZA 2 — NEXT
-Database schema + shared household model
+FAZA 3 — NEXT
+Inventory
 ```
 
-Prije implementacije FAZE 2 pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću Supabase, GitHub i Vercel infrastrukturu i postojeća dva Auth korisnika.
-Sačuvati postojeću authentication implementaciju i zabranu public signupa. Prompt iz sekcije **34** ostaje samo povijesna referenca.
-FAZA 2 još nije implementirana; sljedeći zadatak je definirati database schema i zajednički household model za oba postojeća korisnika.
+Prije implementacije FAZE 3 pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću Supabase, GitHub i Vercel infrastrukturu, postojeća dva Auth korisnika i njihov zajednički household.
+Sačuvati postojeću authentication implementaciju, zabranu public signupa i database foundation iz FAZE 2. Ne izvršavati ponovno dovršenu migraciju ili bootstrap. Prompt iz sekcije **34** ostaje samo povijesna referenca.
+Sljedeći zadatak je Inventory na postojećem shared household modelu. Ostale faze ostaju za kasnije.
 
 ---
 
@@ -2191,7 +2226,19 @@ FAZA 2 još nije implementirana; sljedeći zadatak je definirati database schema
 Commit: a25b133 - Implement authentication and protected dashboard
 ```
 
-**NEXT: Phase 2 — Database schema + shared household model**
+**Phase 2: Database schema + shared household model — COMPLETE**
+
+```text
+✅ supabase/migrations/20261004000000_create_shared_household_foundation.sql pregledana i ručno izvršena u hosted Supabase SQL Editoru
+✅ public.households i public.household_members kreirane; RLS uključen na obje
+✅ private.is_household_member(uuid) — recursion-safe SECURITY DEFINER helper
+✅ authenticated read-only pristup kroz RLS; bez client INSERT/UPDATE/DELETE policies
+✅ jedan zajednički Stockly household; oba postojeća Auth korisnika dodana kao owner i member
+✅ runtime RLS testiranje završeno za oba korisnika: svaki vidi točno 1 household i 2 membership retka
+✅ docs/database-setup.md dokumentira ručni bootstrap postupak
+```
+
+**NEXT: Phase 3 — Inventory**
 
 Ostale funkcionalnosti još nisu implementirane.
 
@@ -2222,11 +2269,20 @@ Login/root auth redirects and logout: verified
 npm run lint: PASS
 npm run build: PASS
 Vercel production deployment: working
+Phase 2: Database schema + shared household model — COMPLETE
+Migration: supabase/migrations/20261004000000_create_shared_household_foundation.sql
+Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
+Tables: public.households and public.household_members; RLS enabled on both
+Helper: private.is_household_member(uuid), recursion-safe SECURITY DEFINER
+Client access: authenticated SELECT only through RLS; no INSERT/UPDATE/DELETE policies
+Shared household: one Stockly household with the two existing Auth users (one owner, one member)
+Runtime RLS: completed for both authenticated users; each sees exactly 1 household and 2 membership rows
+Manual bootstrap documentation: docs/database-setup.md
 
 DO NOT redo setup.
-DO NOT reimplement Phase 1 or enable public signup.
+DO NOT reimplement Phases 1 or 2, rerun the completed migration/bootstrap, or enable public signup.
 
 NEXT TASK:
-Phase 2 — Database schema + shared household model.
-Then continue phase-by-phase with inventory, shopping, activity, realtime, PWA, notifications.
+Phase 3 — Inventory.
+Then continue phase-by-phase with shopping, low-stock automation, activity, realtime, PWA, notifications.
 ```
