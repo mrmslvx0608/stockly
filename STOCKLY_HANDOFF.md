@@ -118,6 +118,7 @@ Važni commitovi do sada:
 Initial Stockly setup
 Add Supabase integration
 a25b133 - Implement authentication and protected dashboard
+6dfeb26 - Implement shared household inventory
 ```
 
 ---
@@ -227,12 +228,14 @@ Vercel je povezan na `main` branch.
 
 Svaki budući push na `main` automatski radi novi production deployment.
 
+Trenutni production deployment je commit `6dfeb26` — **Implement shared household inventory**. Korisnik je potvrdio da ga je Vercel uspješno deployao u **Production** i da je postao current production deployment; production smoke test s oba postojeća korisnika prošao je **4. listopada 2026.** Detalji su u sekciji **2.7**.
+
 ## 2.5. FAZA 1 — Authentication: COMPLETE
 
 FAZA 1 — Authentication + minimalni protected app shell je završena.
 Korisnik je potvrdio ručnu provjeru lokalno i u produkciji; status je zabilježen **4. listopada 2026.**
 
-Trenutni implementation commit:
+Implementation commit za FAZU 1:
 
 ```text
 a25b133 - Implement authentication and protected dashboard
@@ -300,9 +303,9 @@ Stvarni user UUIDs, email adrese, lozinke, secrets i environment vrijednosti nis
 Auth korisnici i authentication postavke nisu mijenjani; `auth.users` nije izložen aplikaciji.
 Inventory, shopping, activity, realtime, PWA, notifications i novi UI nisu implementirani u FAZI 2.
 
-## 2.7. FAZA 3 — Inventory: COMPLETE
+## 2.7. FAZA 3 — Inventory: COMPLETE IN PRODUCTION
 
-FAZA 3 — prvi upotrebljivi zajednički household inventory je završena.
+FAZA 3 — prvi upotrebljivi zajednički household inventory je završena i potvrđena u produkciji (**COMPLETE IN PRODUCTION**).
 Korisnik je potvrdio ručno izvršavanje migracije te application, validation, trigger i runtime RLS provjere; status je zabilježen **4. listopada 2026.**
 
 Migracija:
@@ -339,6 +342,21 @@ src/app/dashboard/page.tsx       — dodan Inventory link
 ```
 
 FAZA 1 Authentication i FAZA 2 Shared Household ostaju funkcionalne i nepromijenjene; dashboard je dobio samo inventory navigaciju. Stvarni user UUIDs, email adrese, secrets, lozinke i environment vrijednosti nisu zapisani u ovoj potvrdi. Nema shopping synchronizationa, activity historyja, realtimea, PWA-a, notificationsa, barcode scanninga ili imagesa u ovoj fazi.
+
+### Production deployment i smoke test — PASS
+
+Korisnik je potvrdio production verification **4. listopada 2026.**:
+
+- Commit `6dfeb26` (**Implement shared household inventory**) Vercel je uspješno deployao u **Production** i postao je current production deployment na postojećem Stockly projektu.
+- User 1 uspješno je otvorio `/inventory` u produkciji i kreirao zajednički inventory item.
+- User 2 vidio je isti item u produkciji i uspješno promijenio njegovu quantity.
+- User 1 nakon refresh-a vidio je ažuriranu quantity.
+- Low-stock state ispravno se ažurirao u produkciji.
+- Time je potvrđeno da shared household inventory radi između oba postojeća korisnika u produkciji.
+- Privremeni production test item obrisan je nakon provjere.
+- Authentication i dashboard navigacija nastavili su raditi.
+
+Production rezultati su korisnikova ručna potvrda; ovaj dokumentacijski update nije izvršavao deployment ili hosted database operacije.
 
 **NEXT: FAZA 4 — Shopping list**, prema roadmapu u sekciji **33**. Low-stock automation ostaje FAZA 5.
 
@@ -1378,13 +1396,16 @@ Setup infrastrukture, FAZA 1 — Authentication, FAZA 2 — Database schema + sh
 ✅ jedan zajednički household; postojeća dva korisnika kao owner i member
 ✅ runtime RLS za oba korisnika: svaki vidi 1 household i 2 membership retka
 ✅ docs/database-setup.md — ručni bootstrap postupak
-✅ FAZA 3 — Inventory: COMPLETE
+✅ FAZA 3 — Inventory: COMPLETE IN PRODUCTION
 ✅ inventory migracija pregledana i ručno izvršena; public.inventory_items i updated_at trigger
 ✅ authenticated inventory CRUD kroz četiri membership RLS policies; anonymous SELECT zabranjen
 ✅ server-side household resolver; edit/quantity/delete scope po item id i household_id
 ✅ protected columns, foreign-household isolation i rollback fixtures ručno provjereni
 ✅ oba korisnika upravljaju istim inventoryjem; promjene vidljive nakon refresh-a
 ✅ low-stock oznaka, tri decimalna mjesta i server-side validation ručno provjereni
+✅ 6dfeb26 — Implement shared household inventory: Vercel Production deployment, current production deployment
+✅ production smoke test s oba korisnika: shared item create/read/quantity update, refresh i low-stock state
+✅ production test item obrisan; authentication i dashboard navigacija rade
 ```
 
 ---
@@ -1423,7 +1444,7 @@ Authentication + protected app shell
 FAZA 2 — COMPLETE
 Database schema + shared household model
 
-FAZA 3 — COMPLETE
+FAZA 3 — COMPLETE IN PRODUCTION
 Inventory
 
 FAZA 4 — NEXT
@@ -2222,7 +2243,7 @@ https://stockly-roan-tau.vercel.app
 FAZA 1 je **COMPLETE**, commit `a25b133 - Implement authentication and protected dashboard`.
 Authentication je ručno provjeren lokalno i u produkciji, a `npm run lint` i `npm run build` prolaze.
 FAZA 2 je **COMPLETE**: migracija je pregledana i ručno izvršena u hosted Supabase SQL Editoru; jedan shared household s postojećim owner/member korisnicima je kreiran. Runtime RLS potvrđuje da oba korisnika vide točno 1 household i 2 membership retka. Detalji su u sekciji **2.6**, a bootstrap u `docs/database-setup.md`.
-FAZA 3 je **COMPLETE**: inventory migracija je pregledana i ručno izvršena; oba korisnika upravljaju istim inventoryjem. Updated-at trigger, low-stock logika, decimalne količine, server-side validation, protected-column privileges i foreign-household runtime RLS isolation ručno su potvrđeni. Test fixtures su rolled back. Detalji su u sekciji **2.7** i `docs/database-setup.md`.
+FAZA 3 je **COMPLETE IN PRODUCTION**: inventory migracija je pregledana i ručno izvršena; oba korisnika upravljaju istim inventoryjem. Updated-at trigger, low-stock logika, decimalne količine, server-side validation, protected-column privileges i foreign-household runtime RLS isolation ručno su potvrđeni. Test fixtures su rolled back. Commit `6dfeb26` (**Implement shared household inventory**) uspješno je deployan kroz Vercel u Production i postao je current production deployment. Production smoke test potvrdio je shared item create/read/quantity update između oba korisnika, vidljivost nakon refresh-a i ispravan low-stock state; privremeni test item je obrisan, a authentication i dashboard navigacija rade. Detalji su u sekciji **2.7**; database/application/RLS provjere su i u `docs/database-setup.md`.
 
 Sljedeći korak je nastavak rada u postojećem projektu:
 
@@ -2287,7 +2308,7 @@ Commit: a25b133 - Implement authentication and protected dashboard
 ✅ docs/database-setup.md dokumentira ručni bootstrap postupak
 ```
 
-**Phase 3: Inventory — COMPLETE**
+**Phase 3: Inventory — COMPLETE IN PRODUCTION**
 
 ```text
 ✅ supabase/migrations/20261004010000_create_inventory_items.sql pregledana i ručno izvršena u hosted Supabase SQL Editoru
@@ -2303,6 +2324,9 @@ Commit: a25b133 - Implement authentication and protected dashboard
 ✅ foreign-household runtime RLS SELECT/UPDATE/DELETE isolation potvrđen; fixtures rolled back
 ✅ npm run lint / npm run build i 58 lokalnih security/validation/static provjera prošli tijekom implementacije
 ✅ FAZE 1 i 2 ostaju funkcionalne i nepromijenjene
+✅ 6dfeb26 — Implement shared household inventory: Vercel Production deployment, current production deployment
+✅ oba korisnika prošla production smoke test: shared create/read/quantity update, refresh i low-stock state
+✅ privremeni production test item obrisan; authentication i dashboard navigacija rade
 ```
 
 **NEXT: Phase 4 — Shopping list**
@@ -2336,6 +2360,7 @@ Login/root auth redirects and logout: verified
 npm run lint: PASS
 npm run build: PASS
 Vercel production deployment: working
+Current production deployment: 6dfeb26 - Implement shared household inventory (Vercel Production)
 Phase 2: Database schema + shared household model — COMPLETE
 Migration: supabase/migrations/20261004000000_create_shared_household_foundation.sql
 Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
@@ -2346,7 +2371,14 @@ Shared household: one Stockly household with the two existing Auth users (one ow
 Runtime RLS: completed for both authenticated users; each sees exactly 1 household and 2 membership rows
 Manual bootstrap documentation: docs/database-setup.md
 
-Phase 3: Inventory — COMPLETE
+Phase 3: Inventory — COMPLETE IN PRODUCTION
+Implementation commit: 6dfeb26 - Implement shared household inventory
+Deployment: successfully deployed by Vercel to Production; became the current production deployment
+Production smoke test: User 1 opened /inventory and created a shared item; User 2 saw it and changed quantity
+Production smoke test: User 1 saw updated quantity after refresh; low-stock state updated correctly
+Production result: shared household inventory works between both existing users
+Production cleanup: temporary test item deleted after verification
+Production regression check: authentication and dashboard navigation continued working
 Migration: supabase/migrations/20261004010000_create_inventory_items.sql
 Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
 Table: public.inventory_items; RLS enabled; four authenticated CRUD policies using existing membership helper
