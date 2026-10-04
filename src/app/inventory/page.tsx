@@ -31,9 +31,12 @@ export default async function InventoryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 flex items-center justify-between gap-4">
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-emerald-400">Stockly</Link>
-        <nav aria-label="Main navigation"><Link href="/dashboard" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400">Dashboard</Link></nav>
+        <nav aria-label="Main navigation" className="flex gap-2">
+          <Link href="/dashboard" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400">Dashboard</Link>
+          <Link href="/shopping" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400">Shopping</Link>
+        </nav>
       </header>
       <h1 className="text-3xl font-semibold tracking-tight">Inventory</h1>
       <p className="mt-2 mb-8 text-sm text-zinc-400">Manage your shared household items. Refresh to see changes made by the other member.</p>
