@@ -6,7 +6,10 @@ hosted database changes have been executed by the local implementation.
 **Status: COMPLETE.** The user confirmed the Phase 2 migration, bootstrap, and
 both users' runtime RLS checks. The following steps are retained as a setup
 reference; do not rerun the completed migration or bootstrap in the existing
-project. Phase 3 Inventory is also complete; its verified results are below.
+project. Phase 3 Inventory is also complete. Phase 4 Shopping List is implemented,
+hosted DB verified, and two-user manual functional verification passed; its Vercel
+Production deployment is Ready, with production browser smoke verification pending.
+Verified results are below.
 
 ## 1. Apply the migration
 
@@ -236,10 +239,114 @@ The implementation also passed `npm run lint`, `npm run build`, and 58 local
 mocked security/validation and static migration checks before these manual
 confirmations. Those local checks did not execute hosted SQL.
 
-## 6. Next planned phase
+## 6. Roadmap progression
 
-**Phase 4 — Shopping list**, as defined in `STOCKLY_HANDOFF.md`, section 33.
-Low-stock automation remains Phase 5. Shopping synchronization, activity history,
+Phase 4 Shopping List results are recorded below. **Phase 5 — Stock Control +
+automatic refill remains NEXT**, as defined in `STOCKLY_HANDOFF.md`, section 33.
+The approved Phase 5 scope includes `target_quantity`, LOW / MEDIUM / ENOUGH,
+consumption/decrease controls, automatic Inventory -> Shopping behavior, required
+purchase quantity calculation, and duplicate automatic Shopping prevention.
+These features are planned, not implemented. Basic refill is no longer deferred
+to Phase 8; basic consumption controls are no longer deferred to Phase 9.
+
+Shopping synchronization, activity history,
 realtime, PWA, notifications, barcode scanning, and images were not implemented
 as part of Phase 3. The low-stock indicator is present; automatic shopping-list
 updates are not.
+
+---
+
+# Phase 4: Shopping List
+
+**IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**
+
+The following results were manually confirmed by the user. Application checks
+used the local app against the existing hosted Supabase production database with
+the two existing household users. This documentation update executed no hosted
+Supabase operations.
+
+## 1. Implementation
+
+- Shared household Shopping List with equal access for both existing users.
+- Standalone shopping items and optional linking to Inventory.
+- Categories supported and grouped in Shopping.
+- Active and Purchased / Completed sections.
+- Shared changes currently require refresh by the other user.
+
+## 2. Hosted migration and structural verification — PASS
+
+`supabase/migrations/20261004020000_create_shopping_items.sql` was manually
+executed successfully in the existing hosted Supabase production project.
+**Do not rerun this completed migration or the Phase 2–3 migrations/bootstrap.**
+
+| Structural check | Verified result |
+| --- | --- |
+| `public.shopping_items` | Exists |
+| RLS | Enabled |
+| Columns | 10 |
+| RLS policies | 4 |
+| Indexes | 3 |
+| `updated_at` trigger | Verified |
+| `private.shopping_household_id()` | Verified |
+| `public.purchase_shopping_item(uuid)` | Verified |
+
+## 3. Hosted privileges / security — PASS
+
+| Privilege check | Verified result |
+| --- | --- |
+| `anon` SELECT on `shopping_items` | Denied |
+| `authenticated` SELECT on `shopping_items` | Allowed |
+| `authenticated` direct INSERT of `household_id` | Denied |
+| `authenticated` direct INSERT of `completed_at` | Denied |
+| `authenticated` UPDATE of `completed_at` | Denied |
+| `authenticated` UPDATE of `created_at` | Denied |
+| `authenticated` UPDATE of `updated_at` | Denied |
+| `authenticated` EXECUTE on `public.purchase_shopping_item(uuid)` | Allowed |
+| `anon` EXECUTE on `public.purchase_shopping_item(uuid)` | Denied |
+| `authenticated` EXECUTE on `private.shopping_household_id()` | Allowed |
+
+## 4. Two-user manual application verification — PASS
+
+1. Standalone Shopping creation passed.
+2. Both users saw the same active Shopping item after refresh.
+3. User 2 changed Shopping quantity; User 1 saw the shared update after refresh.
+4. Standalone Purchase moved the item to Purchased / Completed.
+5. Standalone Purchase did not create or modify an Inventory item.
+6. A shared Inventory test item was created with quantity **1 L** and linked into
+   Shopping for quantity **3 L**. Linked Inventory item selection passed.
+7. Linked Shopping correctly copied Inventory name, category, and unit.
+8. Linked Purchase completed the Shopping item and atomically changed Inventory
+   from **1 L to 4 L**. Both users saw **4 L** after refresh.
+9. Both users had the same new active linked Shopping item for **1 L** open.
+   User 1 purchased it successfully. User 2 submitted the stale Purchase from
+   the still-open page; the second purchase was rejected. Inventory ended at
+   **5 L for both users, not 6 L**.
+
+This manually confirms the hosted purchase RPC prevents duplicate Inventory
+increments. The check used a stale second submission after the first purchase;
+a simultaneous concurrency test is not claimed.
+
+## 5. Deployment — READY; production browser smoke verification — PENDING
+
+The user confirmed Phase 4 application code was committed and pushed to `main`:
+`f1a7bae` — **Implement shared household shopping list**. Vercel successfully
+created a **Production** deployment with status **Ready**.
+
+Production browser smoke testing has not been explicitly verified by the user
+and remains **PENDING**. A Ready deployment, hosted database verification, and
+local application verification against that database do not establish full
+Phase 4 production browser verification. The historical Phase 3 verification
+remains unchanged. This documentation update performed no commit, push, or
+deployment.
+
+## 6. Known current behavior and retained test data
+
+- Realtime is not implemented; another user's page requires refresh to show changes.
+- A stale active Shopping card may remain visible until refresh after another
+  user purchases it.
+- The generic failed-purchase message is acceptable for Phase 4.
+- Test data may still exist and can be cleaned up later; cleanup is not confirmed.
+
+**NEXT: Phase 5 — Stock Control + automatic refill.** Its approved scope is
+recorded above and in `STOCKLY_HANDOFF.md`, section 33. No Phase 5 feature was
+implemented by this documentation update.

@@ -119,6 +119,7 @@ Initial Stockly setup
 Add Supabase integration
 a25b133 - Implement authentication and protected dashboard
 6dfeb26 - Implement shared household inventory
+f1a7bae - Implement shared household shopping list
 ```
 
 ---
@@ -228,7 +229,7 @@ Vercel je povezan na `main` branch.
 
 Svaki budući push na `main` automatski radi novi production deployment.
 
-Trenutni production deployment je commit `6dfeb26` — **Implement shared household inventory**. Korisnik je potvrdio da ga je Vercel uspješno deployao u **Production** i da je postao current production deployment; production smoke test s oba postojeća korisnika prošao je **4. listopada 2026.** Detalji su u sekciji **2.7**.
+Korisnik je potvrdio uspješan **Production** deployment za commit `f1a7bae` — **Implement shared household shopping list**, status **Ready**. Phase 4 production browser smoke verification još je **PENDING**; Ready deployment nije potvrda browser ponašanja. Prethodni Phase 3 deployment `6dfeb26` i njegov uspješan production smoke test ostaju povijesno potvrđeni u sekciji **2.7**. Phase 4 detalji su u sekciji **2.8**.
 
 ## 2.5. FAZA 1 — Authentication: COMPLETE
 
@@ -358,7 +359,75 @@ Korisnik je potvrdio production verification **4. listopada 2026.**:
 
 Production rezultati su korisnikova ručna potvrda; ovaj dokumentacijski update nije izvršavao deployment ili hosted database operacije.
 
-**NEXT: FAZA 4 — Shopping list**, prema roadmapu u sekciji **33**. Low-stock automation ostaje FAZA 5.
+FAZA 4 je implementirana i ručno provjerena prema sekciji **2.8**; Vercel Production deployment je Ready, a production browser smoke verification još je pending. **NEXT: FAZA 5 — Stock Control + automatic refill**, prema roadmapu u sekciji **33**.
+
+## 2.8. FAZA 4 — Shopping List
+
+**IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**
+
+Rezultate ispod ručno je potvrdio korisnik. Application provjera izvedena je lokalno protiv postojećeg hosted Supabase production databasea, s dva postojeća household korisnika. Agent nije izvršavao hosted Supabase operacije.
+
+### Implementacija
+
+- Zajednička household Shopping List je implementirana; oba postojeća korisnika imaju jednak Shopping pristup.
+- Podržani su standalone artikli i opcionalno povezivanje s Inventoryjem.
+- Shopping podržava categories i grupiranje po category.
+- Implementirane su Active i Purchased / Completed sekcije.
+- Shared promjene zahtijevaju refresh stranice drugog korisnika.
+
+### Hosted database — PASS
+
+Migracija `supabase/migrations/20261004020000_create_shopping_items.sql` ručno je uspješno izvršena u postojećem hosted Supabase production projektu. Ne izvršavati je ponovno.
+
+Strukturno je potvrđeno:
+
+- `public.shopping_items` postoji, RLS je enabled.
+- Tablica ima 10 kolona, 4 policies i 3 indexes.
+- `updated_at` trigger postoji.
+- `private.shopping_household_id()` postoji.
+- `public.purchase_shopping_item(uuid)` postoji.
+
+### Privileges / security — PASS
+
+- `anon` ne može SELECT `shopping_items`; `authenticated` može SELECT.
+- `authenticated` ne može direktno INSERT `household_id` ili `completed_at`.
+- `authenticated` ne može UPDATE `completed_at`, `created_at` ili `updated_at`.
+- `authenticated` može execute `purchase_shopping_item(uuid)`; `anon` ne može.
+- `authenticated` može execute `private.shopping_household_id()`.
+
+### Ručna two-user application provjera — PASS
+
+1. Standalone Shopping item uspješno je kreiran.
+2. Oba korisnika vidjela su isti active Shopping item nakon refresh-a.
+3. User 2 promijenio je Shopping quantity; User 1 vidio je promjenu nakon refresh-a.
+4. Standalone Purchase premjestio je item iz Active Shopping u Purchased / Completed.
+5. Standalone Purchase nije kreirao niti izmijenio Inventory item.
+6. Kreiran je zajednički Inventory test item s quantity **1 L**.
+7. Povezan je u Shopping s quantity **3 L**.
+8. Linked Shopping ispravno je koristio Inventory name, category i unit.
+9. Purchase je dovršio Shopping item i atomski promijenio Inventory s **1 L na 4 L**.
+10. Oba korisnika vidjela su Inventory quantity **4 L** nakon refresh-a.
+11. Novi linked Shopping entry za **1 L** bio je vidljiv oboma. User 1 uspješno ga je kupio; User 2 zatim je poslao stale Purchase sa stranice koja je ostala otvorena. Druga kupnja je odbijena. Konačni Inventory bio je **5 L za oba korisnika, ne 6 L**.
+12. Time je ručno potvrđeno da hosted purchase RPC sprečava duplicate Inventory increments.
+
+Ovo je stale second-purchase provjera; nije potvrda simultanog concurrency testa.
+
+### Trenutno ponašanje i preostala provjera
+
+- Shared promjene trenutno zahtijevaju refresh stranice drugog korisnika.
+- Stale active Shopping card može ostati vizualno prisutan nakon što drugi korisnik kupi item, do refresh-a; realtime je namjerno odgođen.
+- Generička failed-purchase poruka prihvatljiva je za FAZU 4.
+- Test podaci mogu još postojati i mogu se kasnije ukloniti; cleanup nije potvrđen.
+- Realtime nije implementiran.
+- **FAZA 5 — Stock Control + automatic refill — NEXT.** Ne implementirati FAZU 5 u ovom dokumentacijskom zadatku.
+
+### Deployment — READY; production browser smoke verification — PENDING
+
+Korisnik je potvrdio da je Phase 4 application kod commitan i pushan na `main`, commit `f1a7bae` — **Implement shared household shopping list**. Vercel je uspješno kreirao Production deployment sa statusom **Ready**.
+
+Production browser smoke test nije izričito potvrđen i ostaje **PENDING**. Hosted DB i lokalna two-user provjera protiv hosted databasea, kao ni Ready deployment, ne znače da je puna Phase 4 production verification završena. Ovaj dokumentacijski update nije izvršavao commit, push ili deployment.
+
+Detalji potvrđenih database i application rezultata zapisani su i u `docs/database-setup.md`. Završene FAZE 0–3 ostaju nepromijenjene. Najnoviji odobreni Phase 5 smjer je Stock Control + automatic refill (sekcija **33**); kasnije faze nisu implementirane.
 
 ---
 
@@ -1347,6 +1416,8 @@ To omogućuje Auth flow i lokalno i u produkciji.
 
 Setup infrastrukture, FAZA 1 — Authentication, FAZA 2 — Database schema + shared household model i FAZA 3 — Inventory su završeni. Detalji authentication provjere nalaze se u sekciji **2.5**, household setupa u **2.6**, a inventory implementacije i ručnih hosted/application/RLS provjera u **2.7**.
 
+FAZA 4 je implementirana, hosted DB verified i two-user manual functional verification passed. Commit/push i Vercel Production deployment su završeni (Ready); production browser smoke verification ostaje pending. Detalji su u sekciji **2.8**.
+
 ## Gotovo
 
 ```text
@@ -1403,7 +1474,7 @@ Setup infrastrukture, FAZA 1 — Authentication, FAZA 2 — Database schema + sh
 ✅ protected columns, foreign-household isolation i rollback fixtures ručno provjereni
 ✅ oba korisnika upravljaju istim inventoryjem; promjene vidljive nakon refresh-a
 ✅ low-stock oznaka, tri decimalna mjesta i server-side validation ručno provjereni
-✅ 6dfeb26 — Implement shared household inventory: Vercel Production deployment, current production deployment
+✅ 6dfeb26 — Implement shared household inventory: Vercel Production deployment, tada current production deployment (povijesna Phase 3 potvrda)
 ✅ production smoke test s oba korisnika: shared item create/read/quantity update, refresh i low-stock state
 ✅ production test item obrisan; authentication i dashboard navigacija rade
 ```
@@ -1412,14 +1483,14 @@ Setup infrastrukture, FAZA 1 — Authentication, FAZA 2 — Database schema + sh
 
 # 32. Što NIJE još napravljeno
 
-Authentication, minimalni protected app shell, zajednički household database foundation i prvi zajednički inventory su implementirani i ručno provjereni. Preostale Stockly funkcionalnosti još nisu implementirane.
+Authentication, minimalni protected app shell, zajednički household database foundation i prvi zajednički inventory su implementirani i ručno provjereni. Shopping je implementiran, hosted DB i lokalna two-user functional provjera prošli su (sekcija **2.8**); Vercel Production deployment je Ready, a production browser smoke verification još nije dovršen.
 
 Nije napravljeno:
 
 ```text
-❌ shopping tables
+❌ Phase 4 production browser smoke verification
 ❌ activity table
-❌ shopping i activity RLS policies
+❌ activity RLS policies
 ❌ realtime sync
 ❌ low-stock automatika
 ❌ PWA
@@ -1427,7 +1498,7 @@ Nije napravljeno:
 ❌ final design
 ```
 
-Sljedeća je FAZA 4 — Shopping list; ostale funkcionalnosti slijede fazu po fazu. Inventory low-stock oznaka postoji; low-stock automatika ostaje za FAZU 5.
+Preostala Phase 4 provjera je production browser smoke test. **FAZA 5 — Stock Control + automatic refill ostaje NEXT** prema sekciji **33**. Inventory low-stock oznaka postoji; target quantity, stock states, consumption/decrease controls i automatsko Inventory -> Shopping ponašanje još nisu implementirani. Wishlist, Dashboard 2.0, activity/history i smart features ostaju kasniji scope.
 
 ---
 
@@ -1435,7 +1506,7 @@ Sljedeća je FAZA 4 — Shopping list; ostale funkcionalnosti slijede fazu po fa
 
 Ne raditi sve u jednom ogromnom promptu.
 
-Preporučeni redoslijed:
+Roadmap iz 4. listopada 2026., usklađen s najnovijim korisnikovim odobrenim Phase 5 smjerom: **Stock Control + automatic refill**. Završene FAZE 0–3 ostaju nepromijenjene. FAZA 4 ima potvrđenu implementaciju, hosted DB i two-user functional verification te Vercel Production deployment Ready; production browser smoke verification je pending. FAZE 5–10 ostaju plan, ne implementacija. Osnovni automatic refill i consumption/decrease controls sada pripadaju FAZI 5; kasnije FAZE 8 i 9 ne odgađaju taj odobreni scope niti zahtijevaju ponovnu implementaciju.
 
 ```text
 FAZA 1 — COMPLETE
@@ -1447,27 +1518,106 @@ Database schema + shared household model
 FAZA 3 — COMPLETE IN PRODUCTION
 Inventory
 
-FAZA 4 — NEXT
-Shopping list
+FAZA 4 — Shopping List
+IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED
+Vercel Production deployment: READY
+Production browser smoke verification: PENDING
 
-FAZA 5
-Low-stock automation
+FAZA 5 — Stock Control + automatic refill — NEXT
 
-FAZA 6
-Activity log
+FAZA 6 — Wishlist
 
-FAZA 7
-Realtime sync
+FAZA 7 — Dashboard 2.0
 
-FAZA 8
-PWA
+FAZA 8 — Smart Low-stock Automation
 
-FAZA 9
-Push notifications
+FAZA 9 — Consumption / Activity
 
-FAZA 10
-UI polish
+FAZA 10 — Smart Features
 ```
+
+## FAZA 4 — Shopping List
+
+**IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED** — detalji u sekciji **2.8**. Vercel Production deployment je **Ready**; production browser smoke verification ostaje **pending**.
+
+Cilj:
+
+- Zajednička household shopping lista za oba korisnika.
+- Ručno dodavanje shopping artikala.
+- Opcionalno povezivanje s postojećim inventory artiklom.
+- Shopping artikli uključuju category.
+- Kupnja/completion cijelog shopping artikla.
+- Kupnja povezanog artikla atomski povećava Inventory quantity i označava shopping artikl kao completed/purchased.
+- Kupnja standalone artikla samo označava shopping artikl kao completed/purchased; ne kreira i ne mijenja Inventory.
+- Odvojene active i completed/purchased sekcije.
+- Bez partial purchases, undo, realtimea ili automatskog low-stock dodavanja u ovoj fazi.
+
+## FAZA 5 — Stock Control + automatic refill — NEXT
+
+Cilj:
+
+- Dodati `target_quantity` u Inventory.
+- Podržati stock states `LOW`, `MEDIUM` i `ENOUGH`.
+- `LOW`: `quantity <= low_stock_threshold`.
+- `MEDIUM`: quantity je iznad low-stock thresholda, ali ispod target quantity.
+- `ENOUGH`: `quantity >= target_quantity`.
+- Izračunati koliko treba kupiti da se dosegne target quantity.
+- Dodati consumption/decrease kontrole za Inventory quantity.
+- Podržati automatsko Inventory -> Shopping ponašanje za refill.
+- Koristiti target quantity za izračun potrebne purchase quantity.
+- Spriječiti duplicate automatic Shopping entries.
+
+Ovo je odobreni budući Phase 5 scope, nije implementiran u FAZI 4 niti ovim dokumentacijskim updateom. Osnovni refill više nije odgođen do FAZE 8; osnovne consumption/decrease kontrole više nisu odgođene do FAZE 9.
+
+## FAZA 6 — Wishlist
+
+Cilj:
+
+- Zajednička household wishlist za stvari koje korisnici žele, a ne trebaju.
+- Planirana polja mogu uključivati name, category, estimated price, priority, note, URL/link i purchased state.
+
+## FAZA 7 — Dashboard 2.0
+
+Cilj:
+
+- Dashboard postaje glavni Stockly home i centralni household pregled.
+- Glavne sekcije: Inventory / What we have, Shopping / What we need, Wishlist / What we want.
+- Stock status pregled: `LOW`, `MEDIUM`, `ENOUGH`.
+- Category pregled i filtriranje.
+- Needs-attention sekcija.
+- Quick actions za dodavanje Inventory, Shopping i Wishlist artikala.
+- Counts i summaries iz stvarnih modula.
+
+## FAZA 8 — Smart Low-stock Automation
+
+Ranije planirani osnovni refill, required purchase quantity calculation i duplicate prevention sada su odobreni za FAZU 5. Ova kasnija faza ostaje za eventualna daljnja poboljšanja; njihov dodatni scope treba potvrditi prije implementacije. Raniji ciljevi ispod ne odgađaju Phase 5 ponašanje.
+
+Cilj:
+
+- Automatski kreirati/ažurirati Shopping artikle kada Inventory dosegne low stock.
+- Koristiti `target_quantity` za izračun potrebne količine za kupnju.
+- Spriječiti duplikate automatskih Shopping unosa.
+- Kupnja nadopunjava Inventory i označava Shopping artikl kao completed.
+
+## FAZA 9 — Consumption / Activity
+
+Osnovne consumption/decrease kontrole sada pripadaju FAZI 5. Ova kasnija faza zadržava activity/history foundation; raniji primjeri kontrole ispod ne odgađaju Phase 5 ponašanje.
+
+Cilj:
+
+- Jednostavnije consumption kontrole količine, primjerice `+1` / `-1` ili `Used`.
+- Activity/history foundation.
+- Consumption history može kasnije podržati analytics.
+
+## FAZA 10 — Smart Features
+
+Cilj:
+
+- Consumption predictions.
+- Suggested purchases.
+- Ostala inteligentna household pomoć na temelju stvarnog usagea.
+
+Realtime, barcode scanning, store management, price history, notifications i advanced analytics ostaju budući scope bez dodijeljene faze, osim ako ih korisnik kasnije izričito promovira. PWA također ostaje budući scope izvan ovog roadmapa.
 
 Nakon svake faze:
 
@@ -1493,7 +1643,7 @@ production test
 
 # 34. Prvi Codex zadatak — povijesni prompt za završenu FAZU 1
 
-Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1, 2 i 3 su **COMPLETE**; ne implementirati ih ponovno. Sljedeća je FAZA 4 — Shopping list.
+Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1, 2 i 3 su **COMPLETE**; ne implementirati ih ponovno. FAZA 4 je deployana (Ready), a production browser smoke verification ostaje pending. FAZA 5 — Stock Control + automatic refill ostaje NEXT prema sekciji **33**.
 
 ```text
 We are building a private web app called Stockly.
@@ -1558,13 +1708,24 @@ Before making changes, inspect the existing project structure and reuse what is 
 
 # 35. Funkcionalni plan Stocklyja
 
-Predložena glavna navigacija:
+Odobreni product-direction principi:
+
+- Dashboard će postati centralni household overview (FAZA 7 — Dashboard 2.0).
+- Inventory, Shopping i Wishlist su odvojeni koncepti: Inventory = what we have; Shopping = what we need; Wishlist = what we want.
+- Inventory categories trebaju biti upotrebljive za navigaciju i filtriranje.
+- Shopping treba podržati grupiranje/filtriranje po category.
+- Ne implementirati funkcionalnosti kasnijih faza unaprijed, osim ako su potrebne za kompatibilnost.
+- Trenutni text-based category pristup prihvatljiv je za sada; ne kreirati category-management tablicu.
+- Realtime, barcode scanning, store management, price history, notifications i advanced analytics ostaju budući scope, osim ako ih korisnik kasnije izričito promovira.
+
+Predložena buduća glavna navigacija:
 
 ```text
 Stockly
 ├── Dashboard
 ├── Inventory
 ├── Shopping
+├── Wishlist
 └── Activity
 ```
 
@@ -1574,7 +1735,11 @@ Stockly
 
 Ovo je širi budući plan, ne trenutni schema. Implementirana FAZA 3 koristi kolone iz sekcije **2.7** (`quantity` i opcionalni `low_stock_threshold`, text category/unit). Location, target quantity i auto-add-to-shopping nisu implementirani.
 
-Svaki proizvod treba imati barem:
+FAZA 5 dodaje `target_quantity` postojećem Inventory modelu i stock states iz sekcije **33**. Izračun potrebne kupnje temelji se na razlici target quantity i trenutne quantity. Pravila za opcionalni threshold/target i njihovu međusobnu validaciju definirati u toj fazi; trenutna low-stock logika FAZE 3 ostaje nepromijenjena.
+
+Location i raniji širi model ispod ostaju buduće ideje. Odobreni Phase 5 scope uključuje automatic Inventory -> Shopping refill, consumption/decrease kontrole, required purchase quantity calculation i duplicate prevention; detalji su u sekciji **33**. To još nije implementirano.
+
+Ranije predložena polja:
 
 ```text
 name
@@ -1612,26 +1777,31 @@ Auto shopping: ON
 
 ---
 
-# 37. Shopping logika — plan
+# 37. Shopping logika — FAZA 4
 
-Shopping lista treba podržati:
+Implementirano i ručno provjereno prema sekciji **2.8**; Vercel Production deployment je Ready, a production browser smoke verification još je pending.
 
-- ručno dodavanje,
-- automatsko dodavanje iz inventoryja,
+FAZA 4 — Shopping List podržava:
+
+- zajedničku household listu za oba korisnika,
+- ručno dodavanje uz category,
+- opcionalni link na postojeći inventory artikl,
 - količinu,
-- označavanje kao kupljeno,
-- automatsko povećanje inventory količine.
+- kupnju/completion cijelog artikla,
+- atomsko povećanje Inventory quantity pri kupnji povezanog artikla,
+- samo completion shopping artikla pri standalone kupnji,
+- active i completed/purchased sekcije.
 
-Primjer:
+Shopping je grupiran po category, uz postojeći text-based category pristup; category filtriranje ostaje product direction. Nema partial purchases, undo, realtimea ili automatskog low-stock dodavanja u FAZI 4. Automatsko Inventory -> Shopping refill ponašanje, izračun potrebne purchase quantity i sprečavanje duplikata pripadaju odobrenoj FAZI 5, zajedno s target quantity, stock states i consumption/decrease kontrolama.
+
+Primjer ručno dodanog shopping artikla povezanog s Inventoryjem:
 
 ```text
 inventory:
 Mlijeko = 1
-minimum = 2
-target = 4
 
 shopping:
-Mlijeko ×3
+Mlijeko ×3 (linked to existing inventory item; category: Food)
 ```
 
 Nakon kupnje:
@@ -1641,11 +1811,13 @@ inventory:
 1 + 3 = 4
 ```
 
-Shopping item se zatvara/označava kao completed.
+Povećanje Inventory quantity i označavanje Shopping artikla kao completed/purchased događaju se atomski. Standalone purchase samo označava Shopping artikl kao completed/purchased. Low-stock threshold i target ne pokreću automatsko dodavanje u FAZI 4.
 
 ---
 
 # 38. Activity log — plan
+
+Osnovne consumption/decrease quantity kontrole pripadaju odobrenoj FAZI 5. FAZA 9 — Consumption / Activity zadržava activity/history foundation. Consumption history može kasnije podržati analytics; predictions i suggested purchases pripadaju FAZI 10 — Smart Features.
 
 Primjeri:
 
@@ -1668,7 +1840,7 @@ Activity treba kasnije koristiti oba korisnika / household.
 
 Poželjno je da oba korisnika vide promjene praktički odmah.
 
-Kasnija faza:
+Budući scope bez dodijeljene faze u odobrenom roadmapu; implementirati samo nakon izričite promocije korisnika. Nije dio FAZE 4:
 
 ```text
 Supabase Realtime
@@ -1685,7 +1857,7 @@ Primjeri:
 
 # 40. Push notifikacije — NE raditi odmah
 
-Push notifications namjerno ostaviti za kasniju fazu.
+Push notifications i PWA ostaju budući scope izvan odobrenih FAZA 4–10. Notifications implementirati samo nakon izričite promocije korisnika.
 
 Razlog:
 
@@ -1696,23 +1868,7 @@ Razlog:
 - VAPID/web-push,
 - mobilne razlike.
 
-Prvo stabilizirati:
-
-```text
-Auth
-Inventory
-Shopping
-Automation
-Activity
-Realtime
-```
-
-Tek onda:
-
-```text
-PWA
-Push notifications
-```
+Prvo nastaviti fazu po fazu prema sekciji **33**. Realtime nije preduvjet niti zakazana faza tog roadmapa. Ne uvoditi PWA ili notifications unaprijed.
 
 ---
 
@@ -2238,7 +2394,7 @@ https://stockly-roan-tau.vercel.app
 
 # 48. Handoff — što je prvi sljedeći konkretan korak
 
-**NE raditi novi setup i NE ponavljati završene FAZE 1, 2 i 3.**
+**NE raditi novi setup i NE ponavljati završene implementacije FAZA 1–4 ili njihove migracije/bootstrap.**
 
 FAZA 1 je **COMPLETE**, commit `a25b133 - Implement authentication and protected dashboard`.
 Authentication je ručno provjeren lokalno i u produkciji, a `npm run lint` i `npm run build` prolaze.
@@ -2253,16 +2409,17 @@ Open existing local project:
 C:\Projects\stockly
 ```
 
-Sljedeća faza:
+Preostala provjera i sljedeća faza:
 
 ```text
-FAZA 4 — NEXT
-Shopping list
+FAZA 4 — Shopping List — Vercel Production deployment READY
+Production browser smoke verification: PENDING
+FAZA 5 — Stock Control + automatic refill — NEXT
 ```
 
-Prije implementacije FAZE 4 pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću Supabase, GitHub i Vercel infrastrukturu, postojeća dva Auth korisnika i njihov zajednički household.
+FAZA 4 je **IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**. Kod je commitan i pushan na `main` kao `f1a7bae` — **Implement shared household shopping list**; Vercel Production deployment je Ready. Production browser smoke verification ostaje pending; detalji su u sekciji **2.8**. Prije daljnjeg rada pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću infrastrukturu, dva Auth korisnika i njihov zajednički household.
 Sačuvati postojeću authentication implementaciju, zabranu public signupa, database foundation iz FAZE 2 i provjereni inventory iz FAZE 3. Ne izvršavati ponovno dovršene migracije ili bootstrap. Prompt iz sekcije **34** ostaje samo povijesna referenca.
-Sljedeći zadatak je Shopping list prema roadmapu u sekciji **33**. Low-stock automation je FAZA 5; ostale faze ostaju za kasnije.
+Preostali Phase 4 zadatak je production browser smoke verification; ne ponavljati implementaciju, migraciju ili već završeni deployment. **FAZA 5 — Stock Control + automatic refill ostaje NEXT**, uključujući target quantity, LOW / MEDIUM / ENOUGH, consumption/decrease kontrole, automatic Inventory -> Shopping, required purchase quantity calculation i duplicate prevention. Kasnije faze i product-direction principi su u sekcijama **33** i **35**. Ovaj update samo bilježi potvrđene rezultate; ne izvršava hosted operacije, commit, push ili implementaciju FAZE 5.
 
 ---
 
@@ -2324,14 +2481,24 @@ Commit: a25b133 - Implement authentication and protected dashboard
 ✅ foreign-household runtime RLS SELECT/UPDATE/DELETE isolation potvrđen; fixtures rolled back
 ✅ npm run lint / npm run build i 58 lokalnih security/validation/static provjera prošli tijekom implementacije
 ✅ FAZE 1 i 2 ostaju funkcionalne i nepromijenjene
-✅ 6dfeb26 — Implement shared household inventory: Vercel Production deployment, current production deployment
+✅ 6dfeb26 — Implement shared household inventory: Vercel Production deployment, tada current production deployment (povijesna Phase 3 potvrda)
 ✅ oba korisnika prošla production smoke test: shared create/read/quantity update, refresh i low-stock state
 ✅ privremeni production test item obrisan; authentication i dashboard navigacija rade
 ```
 
-**NEXT: Phase 4 — Shopping list**
+**Phase 4: Shopping List — IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**
 
-Ostale funkcionalnosti još nisu implementirane.
+- Shared household Shopping s jednakim pristupom za oba korisnika; standalone i linked artikli, category grouping i Active / Purchased / Completed sekcije.
+- Shopping migracija ručno izvršena; structural i privilege/security provjere prošle su (točni rezultati u sekciji **2.8** i `docs/database-setup.md`).
+- Lokalna two-user provjera protiv hosted databasea prošla je: standalone purchase ne mijenja Inventory, linked purchase atomski mijenja **1 L u 4 L**.
+- Stale second Purchase odbijen je; konačni Inventory za oba korisnika bio je **5 L, ne 6 L**.
+- Shared promjene i stale cards zahtijevaju refresh; realtime je odgođen, generic failed-purchase message prihvatljiv je za FAZU 4. Test podaci mogu još postojati; cleanup nije potvrđen.
+- Kod je commitan i pushan na `main`: `f1a7bae` — **Implement shared household shopping list**. Vercel Production deployment: **Ready**.
+- **Production browser smoke verification: PENDING.** Puna Phase 4 production verification još nije potvrđena.
+
+**NEXT: Phase 5 — Stock Control + automatic refill.**
+
+FAZE 5–10 još nisu implementirane.
 
 ---
 
@@ -2360,7 +2527,7 @@ Login/root auth redirects and logout: verified
 npm run lint: PASS
 npm run build: PASS
 Vercel production deployment: working
-Current production deployment: 6dfeb26 - Implement shared household inventory (Vercel Production)
+Latest user-confirmed Production deployment: f1a7bae - Implement shared household shopping list (Vercel Ready); Phase 4 browser smoke verification PENDING
 Phase 2: Database schema + shared household model — COMPLETE
 Migration: supabase/migrations/20261004000000_create_shared_household_foundation.sql
 Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
@@ -2392,10 +2559,29 @@ Runtime RLS isolation: Stockly user sees one household; foreign inventory SELECT
 Temporary foreign household/item fixtures: rolled back
 Phases 1 and 2: still working and unchanged
 
+Phase 4: Shopping List — IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED
+Migration: supabase/migrations/20261004020000_create_shopping_items.sql manually executed successfully in existing hosted production Supabase
+Structure and privileges: verified; exact results in section 2.8 and docs/database-setup.md
+Shopping: equal shared access, standalone/linked items, category grouping, Active and Purchased/Completed sections
+Two-user checks: local app against hosted DB; standalone purchase leaves Inventory unchanged; linked purchase atomically changes 1 L to 4 L
+Duplicate purchase: stale second submission rejected; both users saw final Inventory 5 L, not 6 L
+Commit/push: f1a7bae - Implement shared household shopping list, main
+Vercel Production deployment: READY, confirmed by user
+Production browser smoke verification: PENDING; full Phase 4 production verification not claimed
+Shared changes/stale cards: refresh required; realtime deferred; generic purchase error acceptable
+Test data may still exist; cleanup not confirmed
+
 DO NOT redo setup.
-DO NOT reimplement Phases 1, 2 or 3, rerun the completed migrations/bootstrap, or enable public signup.
+DO NOT reimplement Phases 1–4, rerun the completed migrations/bootstrap, or enable public signup.
 
 NEXT TASK:
-Phase 4 — Shopping list (roadmap section 33).
-Then continue phase-by-phase with low-stock automation, activity, realtime, PWA, notifications.
+Remaining Phase 4 verification: production browser smoke test; deployment is already Ready.
+Phase 5 — Stock Control + automatic refill — NEXT (roadmap section 33).
+Phase 5 approved scope: target_quantity, LOW / MEDIUM / ENOUGH, consumption/decrease controls, automatic Inventory -> Shopping, required purchase quantity calculation, duplicate automatic Shopping prevention.
+Phase 4 has no partial purchases, undo, realtime, or automatic low-stock additions.
+Then: Phase 6 Wishlist -> Phase 7 Dashboard 2.0 -> Phase 8 Smart Low-stock Automation (further scope to confirm; basic refill belongs to Phase 5) -> Phase 9 Consumption / Activity (history; basic consumption controls belong to Phase 5) -> Phase 10 Smart Features.
+Inventory = what we have; Shopping = what we need; Wishlist = what we want.
+Dashboard becomes the central household overview; categories support navigation/filtering and Shopping grouping.
+Keep text-based categories for now; no category-management table and no later-phase features early unless required for compatibility.
+Realtime, barcode scanning, store management, price history, notifications, and advanced analytics remain future scope unless explicitly promoted later; PWA is also future scope outside this roadmap.
 ```
