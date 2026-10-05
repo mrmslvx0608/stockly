@@ -229,7 +229,7 @@ Vercel je povezan na `main` branch.
 
 Svaki budući push na `main` automatski radi novi production deployment.
 
-Korisnik je potvrdio uspješan **Production** deployment za commit `f1a7bae` — **Implement shared household shopping list**, status **Ready**. Phase 4 production browser smoke verification još je **PENDING**; Ready deployment nije potvrda browser ponašanja. Prethodni Phase 3 deployment `6dfeb26` i njegov uspješan production smoke test ostaju povijesno potvrđeni u sekciji **2.7**. Phase 4 detalji su u sekciji **2.8**.
+Korisnik je potvrdio uspješan **Production** deployment za commit `f1a7bae` — **Implement shared household shopping list**, status **Ready**. Phase 4 production browser verification je **VERIFIED / COMPLETE**, nakon korisnikove uspješne ručne provjere s oba postojeća household korisnika 4. listopada 2026. Prethodni Phase 3 deployment `6dfeb26` i njegov uspješan production smoke test ostaju povijesno potvrđeni u sekciji **2.7**. Phase 4 detalji su u sekciji **2.8**.
 
 ## 2.5. FAZA 1 — Authentication: COMPLETE
 
@@ -359,13 +359,20 @@ Korisnik je potvrdio production verification **4. listopada 2026.**:
 
 Production rezultati su korisnikova ručna potvrda; ovaj dokumentacijski update nije izvršavao deployment ili hosted database operacije.
 
-FAZA 4 je implementirana i ručno provjerena prema sekciji **2.8**; Vercel Production deployment je Ready, a production browser smoke verification još je pending. **NEXT: FAZA 5 — Stock Control + automatic refill**, prema roadmapu u sekciji **33**.
+FAZA 4 je implementirana i ručno provjerena prema sekciji **2.8**; Vercel Production deployment je Ready, a production browser verification je VERIFIED / COMPLETE. **NEXT: FAZA 5 — Stock Control + Automatic Refill**, prema roadmapu u sekciji **33**.
 
 ## 2.8. FAZA 4 — Shopping List
 
-**IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**
+**COMPLETE**
 
-Rezultate ispod ručno je potvrdio korisnik. Application provjera izvedena je lokalno protiv postojećeg hosted Supabase production databasea, s dva postojeća household korisnika. Agent nije izvršavao hosted Supabase operacije.
+- Implemented
+- Hosted Supabase migration verified
+- RLS/privileges verified
+- Two-user functional verification passed
+- Vercel Production deployment verified
+- Production browser verification passed
+
+Rezultate ispod ručno je potvrdio korisnik. Application provjera izvedena je lokalno protiv postojećeg hosted Supabase production databasea i na stvarnoj Vercel Production aplikaciji, s dva postojeća household korisnika. Agent nije izvršavao hosted Supabase operacije.
 
 ### Implementacija
 
@@ -412,22 +419,36 @@ Strukturno je potvrđeno:
 
 Ovo je stale second-purchase provjera; nije potvrda simultanog concurrency testa.
 
-### Trenutno ponašanje i preostala provjera
+### Trenutno ponašanje i opcionalni cleanup
 
 - Shared promjene trenutno zahtijevaju refresh stranice drugog korisnika.
 - Stale active Shopping card može ostati vizualno prisutan nakon što drugi korisnik kupi item, do refresh-a; realtime je namjerno odgođen.
 - Generička failed-purchase poruka prihvatljiva je za FAZU 4.
 - Test podaci mogu još postojati i mogu se kasnije ukloniti; cleanup nije potvrđen.
 - Realtime nije implementiran.
-- **FAZA 5 — Stock Control + automatic refill — NEXT.** Ne implementirati FAZU 5 u ovom dokumentacijskom zadatku.
+- **FAZA 5 — Stock Control + Automatic Refill — NEXT.** Ne implementirati FAZU 5 u ovom dokumentacijskom zadatku.
 
-### Deployment — READY; production browser smoke verification — PENDING
+### Deployment i production browser verification — VERIFIED / COMPLETE
 
 Korisnik je potvrdio da je Phase 4 application kod commitan i pushan na `main`, commit `f1a7bae` — **Implement shared household shopping list**. Vercel je uspješno kreirao Production deployment sa statusom **Ready**.
 
-Production browser smoke test nije izričito potvrđen i ostaje **PENDING**. Hosted DB i lokalna two-user provjera protiv hosted databasea, kao ni Ready deployment, ne znače da je puna Phase 4 production verification završena. Ovaj dokumentacijski update nije izvršavao commit, push ili deployment.
+Korisnik je potvrdio uspješno ručno testiranje stvarne Vercel Production aplikacije **4. listopada 2026.**, s oba postojeća household korisnika:
 
-Detalji potvrđenih database i application rezultata zapisani su i u `docs/database-setup.md`. Završene FAZE 0–3 ostaju nepromijenjene. Najnoviji odobreni Phase 5 smjer je Stock Control + automatic refill (sekcija **33**); kasnije faze nisu implementirane.
+- Vercel Production deployment bio je **Ready**.
+- Login je radio u produkciji.
+- Dashboard navigacija je radila.
+- Inventory i Shopping radili su u produkciji.
+- Oba postojeća household korisnika uspješno su pristupila zajedničkoj aplikaciji.
+- Shared Inventory/Shopping ponašanje radilo je između oba korisnika.
+- Shopping item creation/update ponašanje radilo je.
+- Purchase i Purchased / Completed ponašanje radilo je.
+- Linked Shopping -> Inventory ponašanje uspješno je radilo.
+
+**Phase 4: COMPLETE** — Implemented; Hosted Supabase migration verified; RLS/privileges verified; Two-user functional verification passed; Vercel Production deployment verified; Production browser verification passed.
+
+Opcionalno uklanjanje test podataka zaseban je cleanup zadatak i ne utječe na COMPLETE status FAZE 4. Ovaj dokumentacijski update nije izvršavao hosted operacije, commit, push ili deployment.
+
+Detalji potvrđenih database i application rezultata zapisani su i u `docs/database-setup.md`. Završene FAZE 0–3 ostaju nepromijenjene. Najnoviji odobreni Phase 5 smjer je Stock Control + Automatic Refill (sekcija **33**); kasnije faze nisu implementirane.
 
 ---
 
@@ -1416,7 +1437,7 @@ To omogućuje Auth flow i lokalno i u produkciji.
 
 Setup infrastrukture, FAZA 1 — Authentication, FAZA 2 — Database schema + shared household model i FAZA 3 — Inventory su završeni. Detalji authentication provjere nalaze se u sekciji **2.5**, household setupa u **2.6**, a inventory implementacije i ručnih hosted/application/RLS provjera u **2.7**.
 
-FAZA 4 je implementirana, hosted DB verified i two-user manual functional verification passed. Commit/push i Vercel Production deployment su završeni (Ready); production browser smoke verification ostaje pending. Detalji su u sekciji **2.8**.
+FAZA 4 je **COMPLETE**: implementacija, hosted Supabase migracija, RLS/privileges, two-user functional verification, Vercel Production deployment i production browser verification su potvrđeni. Detalji su u sekciji **2.8**.
 
 ## Gotovo
 
@@ -1483,12 +1504,11 @@ FAZA 4 je implementirana, hosted DB verified i two-user manual functional verifi
 
 # 32. Što NIJE još napravljeno
 
-Authentication, minimalni protected app shell, zajednički household database foundation i prvi zajednički inventory su implementirani i ručno provjereni. Shopping je implementiran, hosted DB i lokalna two-user functional provjera prošli su (sekcija **2.8**); Vercel Production deployment je Ready, a production browser smoke verification još nije dovršen.
+Authentication, minimalni protected app shell, zajednički household database foundation i prvi zajednički inventory su implementirani i ručno provjereni. Shopping je **COMPLETE**, uključujući hosted DB, RLS/privileges, two-user functional verification, Vercel Production deployment i production browser verification (sekcija **2.8**).
 
 Nije napravljeno:
 
 ```text
-❌ Phase 4 production browser smoke verification
 ❌ activity table
 ❌ activity RLS policies
 ❌ realtime sync
@@ -1498,7 +1518,7 @@ Nije napravljeno:
 ❌ final design
 ```
 
-Preostala Phase 4 provjera je production browser smoke test. **FAZA 5 — Stock Control + automatic refill ostaje NEXT** prema sekciji **33**. Inventory low-stock oznaka postoji; target quantity, stock states, consumption/decrease controls i automatsko Inventory -> Shopping ponašanje još nisu implementirani. Wishlist, Dashboard 2.0, activity/history i smart features ostaju kasniji scope.
+Phase 4 production browser verification je završena; FAZA 4 je COMPLETE. **FAZA 5 — Stock Control + Automatic Refill ostaje NEXT** prema sekciji **33**. Inventory low-stock oznaka postoji; target quantity, stock states, consumption/decrease controls i automatsko Inventory -> Shopping ponašanje još nisu implementirani. Wishlist, Dashboard 2.0, activity/history i smart features ostaju kasniji scope.
 
 ---
 
@@ -1506,7 +1526,7 @@ Preostala Phase 4 provjera je production browser smoke test. **FAZA 5 — Stock 
 
 Ne raditi sve u jednom ogromnom promptu.
 
-Roadmap iz 4. listopada 2026., usklađen s najnovijim korisnikovim odobrenim Phase 5 smjerom: **Stock Control + automatic refill**. Završene FAZE 0–3 ostaju nepromijenjene. FAZA 4 ima potvrđenu implementaciju, hosted DB i two-user functional verification te Vercel Production deployment Ready; production browser smoke verification je pending. FAZE 5–10 ostaju plan, ne implementacija. Osnovni automatic refill i consumption/decrease controls sada pripadaju FAZI 5; kasnije FAZE 8 i 9 ne odgađaju taj odobreni scope niti zahtijevaju ponovnu implementaciju.
+Roadmap iz 4. listopada 2026., usklađen s najnovijim korisnikovim odobrenim Phase 5 smjerom: **Stock Control + Automatic Refill**. Završene FAZE 0–3 ostaju nepromijenjene. FAZA 4 je COMPLETE, uključujući implementaciju, hosted DB i RLS/privileges, two-user functional verification, Vercel Production deployment i production browser verification. FAZE 5–10 ostaju plan, ne implementacija. Osnovni automatic refill i consumption/decrease controls sada pripadaju FAZI 5; kasnije FAZE 8 i 9 ne odgađaju taj odobreni scope niti zahtijevaju ponovnu implementaciju.
 
 ```text
 FAZA 1 — COMPLETE
@@ -1519,11 +1539,11 @@ FAZA 3 — COMPLETE IN PRODUCTION
 Inventory
 
 FAZA 4 — Shopping List
-IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED
+COMPLETE
 Vercel Production deployment: READY
-Production browser smoke verification: PENDING
+Production browser verification: VERIFIED / COMPLETE
 
-FAZA 5 — Stock Control + automatic refill — NEXT
+FAZA 5 — Stock Control + Automatic Refill — NEXT
 
 FAZA 6 — Wishlist
 
@@ -1538,7 +1558,7 @@ FAZA 10 — Smart Features
 
 ## FAZA 4 — Shopping List
 
-**IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED** — detalji u sekciji **2.8**. Vercel Production deployment je **Ready**; production browser smoke verification ostaje **pending**.
+**COMPLETE** — detalji u sekciji **2.8**. Vercel Production deployment je **Ready**; production browser verification je **VERIFIED / COMPLETE**.
 
 Cilj:
 
@@ -1552,7 +1572,7 @@ Cilj:
 - Odvojene active i completed/purchased sekcije.
 - Bez partial purchases, undo, realtimea ili automatskog low-stock dodavanja u ovoj fazi.
 
-## FAZA 5 — Stock Control + automatic refill — NEXT
+## FAZA 5 — Stock Control + Automatic Refill — NEXT
 
 Cilj:
 
@@ -1643,7 +1663,7 @@ production test
 
 # 34. Prvi Codex zadatak — povijesni prompt za završenu FAZU 1
 
-Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1, 2 i 3 su **COMPLETE**; ne implementirati ih ponovno. FAZA 4 je deployana (Ready), a production browser smoke verification ostaje pending. FAZA 5 — Stock Control + automatic refill ostaje NEXT prema sekciji **33**.
+Ovo je izvorni prompt za FAZU 1, sačuvan kao povijesna referenca. FAZE 1, 2 i 3 su **COMPLETE**; ne implementirati ih ponovno. FAZA 4 je deployana (Ready), a production browser verification je VERIFIED / COMPLETE. FAZA 5 — Stock Control + Automatic Refill ostaje NEXT prema sekciji **33**.
 
 ```text
 We are building a private web app called Stockly.
@@ -1779,7 +1799,7 @@ Auto shopping: ON
 
 # 37. Shopping logika — FAZA 4
 
-Implementirano i ručno provjereno prema sekciji **2.8**; Vercel Production deployment je Ready, a production browser smoke verification još je pending.
+Implementirano i ručno provjereno prema sekciji **2.8**; Vercel Production deployment je Ready, a production browser verification je VERIFIED / COMPLETE.
 
 FAZA 4 — Shopping List podržava:
 
@@ -2409,17 +2429,17 @@ Open existing local project:
 C:\Projects\stockly
 ```
 
-Preostala provjera i sljedeća faza:
+Završena faza i sljedeća faza:
 
 ```text
-FAZA 4 — Shopping List — Vercel Production deployment READY
-Production browser smoke verification: PENDING
-FAZA 5 — Stock Control + automatic refill — NEXT
+FAZA 4 — Shopping List — COMPLETE; Vercel Production deployment verified
+Production browser verification: VERIFIED / COMPLETE
+FAZA 5 — Stock Control + Automatic Refill — NEXT
 ```
 
-FAZA 4 je **IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**. Kod je commitan i pushan na `main` kao `f1a7bae` — **Implement shared household shopping list**; Vercel Production deployment je Ready. Production browser smoke verification ostaje pending; detalji su u sekciji **2.8**. Prije daljnjeg rada pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću infrastrukturu, dva Auth korisnika i njihov zajednički household.
+FAZA 4 je **COMPLETE**. Kod je commitan i pushan na `main` kao `f1a7bae` — **Implement shared household shopping list**; Vercel Production deployment je Ready. Production browser verification je VERIFIED / COMPLETE; detalji su u sekciji **2.8**. Prije daljnjeg rada pročitati `AGENTS.md` i ovaj dokument, provjeriti Git stanje te nastaviti koristiti postojeću infrastrukturu, dva Auth korisnika i njihov zajednički household.
 Sačuvati postojeću authentication implementaciju, zabranu public signupa, database foundation iz FAZE 2 i provjereni inventory iz FAZE 3. Ne izvršavati ponovno dovršene migracije ili bootstrap. Prompt iz sekcije **34** ostaje samo povijesna referenca.
-Preostali Phase 4 zadatak je production browser smoke verification; ne ponavljati implementaciju, migraciju ili već završeni deployment. **FAZA 5 — Stock Control + automatic refill ostaje NEXT**, uključujući target quantity, LOW / MEDIUM / ENOUGH, consumption/decrease kontrole, automatic Inventory -> Shopping, required purchase quantity calculation i duplicate prevention. Kasnije faze i product-direction principi su u sekcijama **33** i **35**. Ovaj update samo bilježi potvrđene rezultate; ne izvršava hosted operacije, commit, push ili implementaciju FAZE 5.
+FAZA 4 je COMPLETE; ne ponavljati implementaciju, migraciju, deployment ili završenu production browser provjeru. **FAZA 5 — Stock Control + Automatic Refill ostaje NEXT**, uključujući target quantity, LOW / MEDIUM / ENOUGH, consumption/decrease kontrole, automatic Inventory -> Shopping, required purchase quantity calculation i duplicate prevention. Kasnije faze i product-direction principi su u sekcijama **33** i **35**. Ovaj update samo bilježi potvrđene rezultate; ne izvršava hosted operacije, commit, push ili implementaciju FAZE 5.
 
 ---
 
@@ -2486,17 +2506,17 @@ Commit: a25b133 - Implement authentication and protected dashboard
 ✅ privremeni production test item obrisan; authentication i dashboard navigacija rade
 ```
 
-**Phase 4: Shopping List — IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**
+**Phase 4: Shopping List — COMPLETE**
 
 - Shared household Shopping s jednakim pristupom za oba korisnika; standalone i linked artikli, category grouping i Active / Purchased / Completed sekcije.
 - Shopping migracija ručno izvršena; structural i privilege/security provjere prošle su (točni rezultati u sekciji **2.8** i `docs/database-setup.md`).
 - Lokalna two-user provjera protiv hosted databasea prošla je: standalone purchase ne mijenja Inventory, linked purchase atomski mijenja **1 L u 4 L**.
 - Stale second Purchase odbijen je; konačni Inventory za oba korisnika bio je **5 L, ne 6 L**.
-- Shared promjene i stale cards zahtijevaju refresh; realtime je odgođen, generic failed-purchase message prihvatljiv je za FAZU 4. Test podaci mogu još postojati; cleanup nije potvrđen.
+- Shared promjene i stale cards zahtijevaju refresh; realtime je odgođen, generic failed-purchase message prihvatljiv je za FAZU 4. Opcionalni test-data cleanup je zaseban zadatak i ne utječe na COMPLETE status.
 - Kod je commitan i pushan na `main`: `f1a7bae` — **Implement shared household shopping list**. Vercel Production deployment: **Ready**.
-- **Production browser smoke verification: PENDING.** Puna Phase 4 production verification još nije potvrđena.
+- **Production browser verification: VERIFIED / COMPLETE.** Korisnik je potvrdio uspješnu production provjeru s oba household korisnika 4. listopada 2026.; točni rezultati su u sekciji **2.8**. FAZA 4 je COMPLETE.
 
-**NEXT: Phase 5 — Stock Control + automatic refill.**
+**NEXT: Phase 5 — Stock Control + Automatic Refill.**
 
 FAZE 5–10 još nisu implementirane.
 
@@ -2527,7 +2547,7 @@ Login/root auth redirects and logout: verified
 npm run lint: PASS
 npm run build: PASS
 Vercel production deployment: working
-Latest user-confirmed Production deployment: f1a7bae - Implement shared household shopping list (Vercel Ready); Phase 4 browser smoke verification PENDING
+Latest user-confirmed Production deployment: f1a7bae - Implement shared household shopping list (Vercel Ready); Phase 4 production browser verification VERIFIED / COMPLETE
 Phase 2: Database schema + shared household model — COMPLETE
 Migration: supabase/migrations/20261004000000_create_shared_household_foundation.sql
 Migration reviewed and manually executed successfully in hosted Supabase SQL Editor
@@ -2559,7 +2579,7 @@ Runtime RLS isolation: Stockly user sees one household; foreign inventory SELECT
 Temporary foreign household/item fixtures: rolled back
 Phases 1 and 2: still working and unchanged
 
-Phase 4: Shopping List — IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED
+Phase 4: Shopping List — COMPLETE
 Migration: supabase/migrations/20261004020000_create_shopping_items.sql manually executed successfully in existing hosted production Supabase
 Structure and privileges: verified; exact results in section 2.8 and docs/database-setup.md
 Shopping: equal shared access, standalone/linked items, category grouping, Active and Purchased/Completed sections
@@ -2567,16 +2587,16 @@ Two-user checks: local app against hosted DB; standalone purchase leaves Invento
 Duplicate purchase: stale second submission rejected; both users saw final Inventory 5 L, not 6 L
 Commit/push: f1a7bae - Implement shared household shopping list, main
 Vercel Production deployment: READY, confirmed by user
-Production browser smoke verification: PENDING; full Phase 4 production verification not claimed
+Production browser verification: VERIFIED / COMPLETE; user-confirmed test on 4 October 2026 with both existing household users
 Shared changes/stale cards: refresh required; realtime deferred; generic purchase error acceptable
-Test data may still exist; cleanup not confirmed
+Optional test-data cleanup: data may still exist; cleanup is separate and does not affect Phase 4 COMPLETE status
 
 DO NOT redo setup.
 DO NOT reimplement Phases 1–4, rerun the completed migrations/bootstrap, or enable public signup.
 
 NEXT TASK:
-Remaining Phase 4 verification: production browser smoke test; deployment is already Ready.
-Phase 5 — Stock Control + automatic refill — NEXT (roadmap section 33).
+Phase 4 is COMPLETE, including Production deployment and production browser verification.
+Phase 5 — Stock Control + Automatic Refill — NEXT (roadmap section 33).
 Phase 5 approved scope: target_quantity, LOW / MEDIUM / ENOUGH, consumption/decrease controls, automatic Inventory -> Shopping, required purchase quantity calculation, duplicate automatic Shopping prevention.
 Phase 4 has no partial purchases, undo, realtime, or automatic low-stock additions.
 Then: Phase 6 Wishlist -> Phase 7 Dashboard 2.0 -> Phase 8 Smart Low-stock Automation (further scope to confirm; basic refill belongs to Phase 5) -> Phase 9 Consumption / Activity (history; basic consumption controls belong to Phase 5) -> Phase 10 Smart Features.

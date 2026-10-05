@@ -6,9 +6,9 @@ hosted database changes have been executed by the local implementation.
 **Status: COMPLETE.** The user confirmed the Phase 2 migration, bootstrap, and
 both users' runtime RLS checks. The following steps are retained as a setup
 reference; do not rerun the completed migration or bootstrap in the existing
-project. Phase 3 Inventory is also complete. Phase 4 Shopping List is implemented,
-hosted DB verified, and two-user manual functional verification passed; its Vercel
-Production deployment is Ready, with production browser smoke verification pending.
+project. Phase 3 Inventory is also complete. Phase 4 Shopping List is **COMPLETE**:
+implementation, hosted migration, RLS/privileges, two-user functional verification,
+Vercel Production deployment, and production browser verification are verified.
 Verified results are below.
 
 ## 1. Apply the migration
@@ -242,7 +242,7 @@ confirmations. Those local checks did not execute hosted SQL.
 ## 6. Roadmap progression
 
 Phase 4 Shopping List results are recorded below. **Phase 5 — Stock Control +
-automatic refill remains NEXT**, as defined in `STOCKLY_HANDOFF.md`, section 33.
+Automatic Refill remains NEXT**, as defined in `STOCKLY_HANDOFF.md`, section 33.
 The approved Phase 5 scope includes `target_quantity`, LOW / MEDIUM / ENOUGH,
 consumption/decrease controls, automatic Inventory -> Shopping behavior, required
 purchase quantity calculation, and duplicate automatic Shopping prevention.
@@ -258,11 +258,19 @@ updates are not.
 
 # Phase 4: Shopping List
 
-**IMPLEMENTED + HOSTED DB VERIFIED + TWO-USER MANUAL FUNCTIONAL VERIFICATION PASSED**
+**COMPLETE**
+
+- Implemented
+- Hosted Supabase migration verified
+- RLS/privileges verified
+- Two-user functional verification passed
+- Vercel Production deployment verified
+- Production browser verification passed
 
 The following results were manually confirmed by the user. Application checks
-used the local app against the existing hosted Supabase production database with
-the two existing household users. This documentation update executed no hosted
+included the local app against the existing hosted Supabase production database
+and the actual Vercel Production application, with the two existing household
+users. This documentation update executed no hosted
 Supabase operations.
 
 ## 1. Implementation
@@ -326,18 +334,30 @@ This manually confirms the hosted purchase RPC prevents duplicate Inventory
 increments. The check used a stale second submission after the first purchase;
 a simultaneous concurrency test is not claimed.
 
-## 5. Deployment — READY; production browser smoke verification — PENDING
+## 5. Deployment and production browser verification — VERIFIED / COMPLETE
 
 The user confirmed Phase 4 application code was committed and pushed to `main`:
 `f1a7bae` — **Implement shared household shopping list**. Vercel successfully
 created a **Production** deployment with status **Ready**.
 
-Production browser smoke testing has not been explicitly verified by the user
-and remains **PENDING**. A Ready deployment, hosted database verification, and
-local application verification against that database do not establish full
-Phase 4 production browser verification. The historical Phase 3 verification
-remains unchanged. This documentation update performed no commit, push, or
-deployment.
+The user confirmed successful manual testing on the actual Vercel Production
+application on **4 October 2026**, using both existing household users:
+
+- Vercel Production deployment was Ready.
+- Login worked in production.
+- Dashboard navigation worked.
+- Inventory worked in production.
+- Shopping worked in production.
+- Both existing household users accessed the shared application successfully.
+- Shared Inventory/Shopping behavior worked between both users.
+- Shopping item creation/update behavior worked.
+- Purchase / Purchased-Completed behavior worked.
+- Linked Shopping -> Inventory behavior worked successfully.
+
+**Phase 4 is COMPLETE**, including verified Production deployment and passed
+production browser verification. The historical Phase 3 verification remains
+unchanged. This documentation update performed no hosted Supabase operations,
+commit, push, or deployment.
 
 ## 6. Known current behavior and retained test data
 
@@ -345,8 +365,9 @@ deployment.
 - A stale active Shopping card may remain visible until refresh after another
   user purchases it.
 - The generic failed-purchase message is acceptable for Phase 4.
-- Test data may still exist and can be cleaned up later; cleanup is not confirmed.
+- Optional test-data cleanup is separate: data may still exist and can be cleaned
+  up later. Cleanup does not affect Phase 4's COMPLETE status.
 
-**NEXT: Phase 5 — Stock Control + automatic refill.** Its approved scope is
+**NEXT: Phase 5 — Stock Control + Automatic Refill.** Its approved scope is
 recorded above and in `STOCKLY_HANDOFF.md`, section 33. No Phase 5 feature was
 implemented by this documentation update.
